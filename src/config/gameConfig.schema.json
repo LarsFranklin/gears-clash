@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gears-clash.local/schemas/gameConfig.json",
+  "title": "GearsClashGameConfig",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "grid",
+    "symbols",
+    "symbolWeights",
+    "payoutTable",
+    "bonusTriggers",
+    "multiplierRanges",
+    "freeSpinDefaults",
+    "maxWin",
+    "animation",
+    "assets",
+    "sound"
+  ],
+  "properties": {
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reels", "rows"],
+      "properties": {
+        "reels": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "rows": { "type": "integer", "minimum": 1, "maximum": 10 }
+      }
+    },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "label"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["normal", "wild", "bonus"] },
+          "label": { "type": "string" },
+          "bonusId": {
+            "type": "string",
+            "enum": ["gears_clash", "heist_run", "deadlock_mode"]
+          }
+        }
+      }
+    },
+    "symbolWeights": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0 }
+    },
+    "payoutTable": { "type": "object" },
+    "bonusTriggers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bonusSymbolIds"],
+      "properties": {
+        "bonusSymbolIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "multiplierRanges": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" }
+      }
+    },
+    "freeSpinDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "maxWin": { "type": "number", "minimum": 0 },
+    "animation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spinDurationMs", "reelStopStaggerMs"],
+      "properties": {
+        "spinDurationMs": { "type": "integer", "minimum": 0 },
+        "reelStopStaggerMs": { "type": "integer", "minimum": 0 },
+        "turbo": { "type": "boolean" },
+        "reelSequentialDurationMs": { "type": "integer", "minimum": 200 },
+        "reelApproachExtraRows": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "reelIdleScrollRowsPerSec": { "type": "number", "minimum": 0, "maximum": 40 }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basePath"],
+      "properties": {
+        "basePath": { "type": "string" }
+      }
+    },
+    "sound": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "baseUrl": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "gears-clash-game",
+  "version": "0.1.0",
+  "description": "Framework-agnostisches HTML5-Slot-Game (Gears Clash) — Social/Fun-Coins, PixiJS.",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/gears-clash.es.js",
+  "module": "./dist/gears-clash.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/gears-clash.es.js",
+      "default": "./dist/gears-clash.es.js"
+    },
+    "./style.css": "./dist/style.css",
+    "./iife": "./dist/gears-clash.iife.js",
+    "./gameConfig.schema.json": "./dist/gameConfig.schema.json"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && tsc -p tsconfig.build.json && node scripts/copy-schema.mjs",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "slot",
+    "pixi",
+    "game",
+    "typescript"
+  ],
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "pixi.js": "^8.6.6",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.3"
+  }
+}

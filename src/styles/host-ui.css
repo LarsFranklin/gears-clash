@@ -1,0 +1,374 @@
+/**
+ * Nur gc-* Klassen — keine globalen generischen Selektoren.
+ * Industrial / Steampunk — Phase 2 Visual Prototype.
+ */
+
+/* --- Demo-Seite (Preview) --- */
+.gc-demo-page {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: system-ui, 'Segoe UI', sans-serif;
+  color: #e4e4ec;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, #2a1a08 0%, transparent 55%),
+    radial-gradient(ellipse 80% 50% at 100% 50%, #0c1828 0%, transparent 45%),
+    radial-gradient(ellipse 60% 40% at 0% 80%, #1a0820 0%, transparent 50%),
+    linear-gradient(165deg, #060608 0%, #0e0e12 40%, #08080c 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.gc-demo-page__shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.75rem, 3vw, 2rem);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.gc-demo-page__brand {
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.gc-demo-page__title {
+  margin: 0;
+  font-size: clamp(1.25rem, 4vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #c9a227, #f0d878, #b87333, #c9a227);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 40px rgba(201, 162, 39, 0.35);
+}
+
+.gc-demo-page__subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(200, 200, 220, 0.45);
+}
+
+.gc-demo-page__stage {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gc-demo-page__game-host {
+  width: 100%;
+}
+
+.gc-demo-page__note {
+  margin: 0.75rem 0 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: rgba(180, 180, 200, 0.38);
+  text-align: center;
+  max-width: 42rem;
+}
+
+/* --- Slot-Root (im Host oder Demo) --- */
+.gc-slot {
+  width: 100%;
+  max-width: min(100%, 1040px);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(0.65rem, 2vw, 1rem);
+  padding: clamp(0.5rem, 1.5vw, 0.85rem);
+  box-sizing: border-box;
+}
+
+/* --- HUD --- */
+.gc-hud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.45rem, 1.5vw, 0.75rem);
+}
+
+.gc-hud-panel {
+  flex: 1 1 140px;
+  min-width: min(140px, 28vw);
+  max-width: 320px;
+  padding: 0.55rem 0.85rem 0.6rem;
+  border-radius: 10px;
+  background:
+    linear-gradient(145deg, rgba(40, 38, 48, 0.95) 0%, rgba(22, 22, 30, 0.98) 100%);
+  border: 1px solid rgba(90, 82, 70, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.gc-hud-panel__label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(200, 190, 210, 0.55);
+}
+
+.gc-hud-panel__value {
+  font-size: clamp(1rem, 2.8vw, 1.25rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f2eee8;
+  text-shadow: 0 0 20px rgba(201, 162, 39, 0.15);
+  transition:
+    color 0.2s ease,
+    text-shadow 0.25s ease;
+}
+
+/* --- Rahmen / Grid --- */
+.gc-frame {
+  position: relative;
+  border-radius: 16px;
+  padding: 3px;
+  background: linear-gradient(
+    145deg,
+    #5a4a38 0%,
+    #2a2218 25%,
+    #1a1810 50%,
+    #3a3228 75%,
+    #6a5838 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.65),
+    0 12px 40px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 220, 160, 0.12);
+}
+
+.gc-frame__inner {
+  position: relative;
+  z-index: 0;
+  border-radius: 13px;
+  padding: clamp(0.45rem, 1.2vw, 0.65rem);
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 0%, rgba(60, 50, 35, 0.35) 0%, transparent 55%),
+    linear-gradient(180deg, #121018 0%, #0a090c 100%);
+  border: 1px solid rgba(30, 28, 24, 0.9);
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.65);
+}
+
+.gc-canvas-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 20%, #1a1a22 0%, #08080c 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(201, 162, 39, 0.12),
+    inset 0 0 48px rgba(0, 0, 0, 0.5);
+}
+
+.gc-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+/* --- Spin --- */
+.gc-slot__spin-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.25rem 0 0.35rem;
+}
+
+.gc-button {
+  appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: none;
+  color: #1a1208;
+  touch-action: manipulation;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+
+.gc-button--spin {
+  width: clamp(4.5rem, 14vw, 5.75rem);
+  height: clamp(4.5rem, 14vw, 5.75rem);
+  border-radius: 50%;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  text-transform: uppercase;
+  background:
+    radial-gradient(circle at 30% 25%, #fff8e0 0%, transparent 42%),
+    linear-gradient(155deg, #f0d878 0%, #c9a227 35%, #8a6020 90%, #5a4020 100%);
+  border: 3px solid rgba(60, 45, 20, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 160, 0.35),
+    0 6px 0 rgba(40, 28, 10, 0.95),
+    0 10px 28px rgba(0, 0, 0, 0.55);
+}
+
+.gc-button--spin:not(:disabled):hover {
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 160, 0.5),
+    0 6px 0 rgba(40, 28, 10, 0.95),
+    0 14px 36px rgba(201, 162, 39, 0.35);
+}
+
+.gc-button--spin:not(:disabled):active {
+  transform: translateY(3px);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 160, 0.25),
+    0 3px 0 rgba(40, 28, 10, 0.95),
+    0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.gc-button--spin:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.35) brightness(0.65);
+  opacity: 0.72;
+  transform: none;
+  box-shadow:
+    0 0 0 1px rgba(100, 100, 110, 0.2),
+    0 4px 0 rgba(30, 30, 35, 0.9),
+    0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.gc-button--spin:focus-visible {
+  outline: 2px solid #48c8f0;
+  outline-offset: 3px;
+}
+
+/* Externer Button: kompakterer Stil */
+.gc-button:not(.gc-button--spin) {
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #4a4238, #2a2218);
+  color: #f0e8dc;
+  border: 1px solid rgba(120, 100, 80, 0.6);
+}
+
+.gc-button:not(.gc-button--spin):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Screen-Shake (leicht) --- */
+@keyframes gc-shake-keyframes {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-3px, 1px);
+  }
+  40% {
+    transform: translate(3px, -1px);
+  }
+  60% {
+    transform: translate(-2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+.gc-frame--shake {
+  animation: gc-shake-keyframes 0.38s ease-out;
+}
+
+.gc-frame--shake-medium {
+  animation: gc-shake-keyframes 0.52s ease-out;
+}
+
+/* --- Bonus-Overlay --- */
+.gc-bonus-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.gc-bonus-overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gc-bonus-overlay__dim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.78) 100%
+  );
+  border-radius: 10px;
+}
+
+.gc-bonus-overlay__card {
+  position: relative;
+  z-index: 1;
+  padding: clamp(1rem, 3vw, 1.75rem) clamp(1.5rem, 5vw, 2.75rem);
+  border-radius: 14px;
+  background: linear-gradient(
+    165deg,
+    rgba(50, 42, 32, 0.96) 0%,
+    rgba(18, 16, 22, 0.98) 100%
+  );
+  border: 2px solid rgba(201, 162, 39, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 16px 48px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 220, 160, 0.12);
+  transform: scale(0.82);
+  opacity: 0;
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease;
+}
+
+.gc-bonus-overlay--visible .gc-bonus-overlay__card {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.gc-bonus-overlay__title {
+  margin: 0;
+  font-size: clamp(1.35rem, 4.5vw, 2rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  background: linear-gradient(90deg, #f0d878, #c9a227, #f5e6b8, #c9a227);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 60px rgba(201, 162, 39, 0.4);
+}
+
+.gc-hud-panel--tick .gc-hud-panel__value {
+  color: #fff8e8;
+  text-shadow: 0 0 18px rgba(255, 200, 100, 0.35);
+}
