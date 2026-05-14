@@ -1,0 +1,32 @@
+---
+description: Public API von gears-clash-game stabil halten — Hosts importieren ausschließlich aus dem Package-Root, nicht aus internen Pfaden.
+alwaysApply: true
+---
+
+# Adapter / Public API Stabilität
+
+## Pflicht
+
+- **Public API ausschließlich über `src/index.ts`.** Hosts (Laravel, React, IIFE) importieren ausschließlich aus `gears-clash-game` — niemals aus `gears-clash-game/dist/...`-Subpfaden oder internen Modulen.
+- **Adapter-Verträge nur additiv ändern.** Felder zu `GameApiAdapter`, `HttpGameApiAdapterOptions`, `MockGameApiAdapterOptions`, `HostAdapter`, `SpinRequest`, `SpinResult` werden **optional ergänzt**, nicht umbenannt oder entfernt.
+- **Breaking Changes** brauchen einen MAJOR-Bump in `package.json` und einen Eintrag im Release-Issue.
+- **`HostAdapter`** ist UI-Kontext (Currency, Locale, `userMeta`, `disabled`-Flag, Callbacks). **Nie** Server-Logik dort einbauen.
+
+## Verboten
+
+- Re-Exports unter `src/adapters/HostAdapter.ts` o. ä. „Indirektion-Stubs" — `HostAdapter` lebt direkt in `src/config/types.ts`.
+- Imports tief aus `gears-clash-game/dist/...` in README-Beispielen oder generiertem Host-Code.
+- Adapter mit Side-Effects beim Konstruktor (z. B. `new HttpGameApiAdapter()` startet eine Verbindung) — Konstruktoren sind reine Konfiguration.
+
+## Pflicht-Vorgehen bei API-Änderungen
+
+1. Änderung in `src/index.ts` aufnehmen (Export ergänzen).
+2. README-Beispiele angleichen (ESM, IIFE, Laravel, React).
+3. IIFE-Globalobjekt `GearsClash` am Ende von `src/index.ts` erweitern.
+4. Test in `src/__tests__/` ergänzen (z. B. `httpAdapter.errors.test.ts`-Pendant).
+5. Falls `GameConfig` betroffen: `gameConfig.schema.json` aktualisieren und Schema-Test grün halten.
+
+## Fehlerklassen
+
+- Bei API-Calls **nur** `NetworkError`, `InvalidResponseError`, `InsufficientBalanceError` werfen.
+- `NetworkError.kind` (`'transport' | 'timeout'`) ist **bestehender** Vertrag — nicht entfernen.

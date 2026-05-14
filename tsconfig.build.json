@@ -10,5 +10,9 @@
     "stripInternal": true
   },
   "include": ["src/**/*.ts", "src/**/*.json"],
-  "exclude": ["src/demo/**"]
+  "exclude": [
+    "src/demo/**",
+    "src/**/__tests__/**",
+    "src/**/*.test.ts"
+  ]
 }

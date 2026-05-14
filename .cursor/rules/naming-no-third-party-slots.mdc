@@ -1,0 +1,31 @@
+---
+description: Keine Provider-/Originalslot-Namen, geschützten Marken oder 1:1-Visuals fremder Slots verwenden.
+alwaysApply: true
+---
+
+# Branding & IP — Keine Drittanbieter-Slots
+
+Gears Clash ist ein **eigenständiges, lizenzierbares** Produkt. Es darf nicht als Klon erkennbar sein.
+
+## Verboten
+
+- **Provider-/Hersteller-Namen** (z. B. NetEnt, Pragmatic, Microgaming, BTG, Play'n GO, NoLimit City, Push Gaming, …) im Code, Asset-Namen, README, Cursor-Skills oder Issues.
+- **Geschützte Slot-Titel** oder Anspielungen darauf (Bonus-Mechanik-Inspiration ist OK; Branding-Kopie nicht).
+- **1:1-Kopie** existierender Symbol-Sets, Frame-Designs, Sound-Cues.
+- **Geschützte Markenzeichen / Logos** in Assets oder Mock-Daten.
+
+## Erlaubt
+
+- **Mechanik-Inspiration** (Sticky Wilds, Multiplier-Wars, Collect-Phasen) — diese Mechaniken sind nicht patentierbar; sie nur beschreibend, mit eigenen Begriffen.
+- **Eigene Bonus-Namen**: `gears_clash`, `heist_run`, `deadlock_mode` (industrielle Werkstatt-Theme — eigenständig).
+- **Eigene Symbol-Themes** (Zahnräder, Werkzeuge, Industrie-Werkstatt) — kein Direktbezug zu existierendem Material.
+
+## Pflicht bei neuen Themes / Skins
+
+1. Theme-ID neutral wählen (`industrial-night`, `factory-overdrive`, …) — keine Anspielungen auf existierende Spielebrands.
+2. Symbol-Pack visuell eigenständig — keine 1:1-Kopie von Branding/Iconografie.
+3. Sound-Cues lizenziert oder selbst erstellt.
+
+## Bei Verdacht
+
+- Wenn ein Symbolname / Bonus-Konzept verdächtig nahe an einem existierenden Slot wirkt: **Plan-Modus** und Rückfrage. Lieber neu benennen.

@@ -1,0 +1,32 @@
+---
+description: CSS-Klassen und DOM-Strukturen in src/styles/ und src/ui/ sind mit gc-* prefix isoliert. Keine globalen Selektoren oder Tailwind-/Framework-Abhängigkeiten.
+alwaysApply: true
+---
+
+# CSS-Isolation (`gc-*` Prefix)
+
+## Pflicht
+
+- Alle Klassen-/ID-Namen mit Prefix **`gc-`** (z. B. `gc-frame`, `gc-button`, `gc-bonus-overlay`).
+- Selektoren in `src/styles/host-ui.css` greifen ausschließlich auf `gc-*`-Klassen oder darauf basierte Pseudoklassen.
+- DOM-Strukturen in `src/ui/` setzen `gc-*`-Klassen — keine generischen Klassen wie `.button`, `.modal`, `.frame`.
+
+## Verboten
+
+- Globale CSS-Selektoren (`body`, `*`, ungeprefixte Klassen).
+- Tailwind-/Bootstrap-/MaterialUI-Klassen im Package.
+- Inline-Styles für reguläre Layout-/Theme-Logik (Pixi-Layout per `aspect-ratio` ist eine Ausnahme, weil PixiJS die Canvas-Größe zur Laufzeit setzt).
+- DOM-Mutationen am `document.body` aus dem Package (alles passiert im `container` aus `GearsClashGameOptions`).
+
+## Pflicht-Vorgehen bei neuen UI-Komponenten
+
+1. Klassennamen festlegen: `gc-<komponente>` und ggf. BEM-Modifier `gc-<komponente>--<modifier>` / `gc-<komponente>__<element>`.
+2. Styles in `src/styles/host-ui.css` ergänzen, im richtigen Abschnitt.
+3. UI-Klasse im neuen `*.ts` File mit `mount(parent)`/`destroy()`-Lifecycle.
+4. Falls Listener gesetzt werden: über `AbortController` aufräumen (siehe `ButtonController`).
+5. Accessibility-Basics: `aria-*`-Attribute, Tastatur-Bedienbarkeit, Fokus-Management.
+
+## Verwandte Rules / Skills
+
+- `code-quality.mdc`
+- `slot-game-architecture` — Modul-Verantwortung

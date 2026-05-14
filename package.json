@@ -8,7 +8,8 @@
   "type": "module",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE.md"
   ],
   "main": "./dist/gears-clash.es.js",
   "module": "./dist/gears-clash.es.js",
@@ -25,19 +26,62 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "vite build && tsc -p tsconfig.build.json && node scripts/copy-schema.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pack:dry": "npm pack --dry-run"
   },
   "keywords": [
     "slot",
+    "slot-game",
+    "html5",
     "pixi",
+    "pixijs",
     "game",
-    "typescript"
+    "typescript",
+    "framework-agnostic",
+    "gears-clash",
+    "social-coins"
   ],
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/franklin-slots/gears-clash.git"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/franklin-slots/gears-clash/-/issues"
+  },
+  "homepage": "https://gitlab.com/franklin-slots/gears-clash#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "peerDependencies": {
+    "pixi.js": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "pixi.js": {
+      "optional": false
+    }
+  },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.17",
+    "ajv": "^8.17.1",
+    "concurrently": "^9.2.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "pixi.js": "^8.6.6",
+    "tsx": "^4.21.0",
     "typescript": "~5.7.2",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "vitest": "^3.2.4"
   }
 }

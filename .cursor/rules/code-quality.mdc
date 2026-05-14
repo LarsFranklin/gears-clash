@@ -1,0 +1,22 @@
+---
+description: Code-Qualitätsstandards für Gears Clash (TypeScript / Vite / PixiJS-Package)
+alwaysApply: true
+---
+
+# Code-Qualität
+
+## Verboten
+
+- **Kein `alert()`** / `window.alert()` / `window.confirm()` – immer ein Feedback-System oder Modal verwenden
+- **Kein Base64 für Medien** – Bilder/Videos über Dateipfade, URLs oder ein Asset-Manifest laden (siehe `src/config/assetManifest.ts`)
+- **Keine überflüssigen Kommentare** – Kommentare nur für nicht-offensichtliche Logik / Trade-offs
+- **Keine hardcodierten Secrets** – Tokens, Passwörter, API-Keys gehören in Umgebungsvariablen oder Host-Konfiguration
+
+## Standards
+
+- **Konsistente Fehlerbehandlung** – `try/catch` bei async-Operationen; Fehler über `emitter.emit('error', ...)` und `hostAdapter.onError` verteilen
+- **Kleine Dateien** – Richtwert: unter 300 Zeilen pro Datei, ideal unter 200
+- **DRY (Don't Repeat Yourself)** – Code an 2+ Stellen in wiederverwendbare Funktion/Klasse extrahieren
+- **Klare Benennung** – Funktionen, Variablen und Dateien so benennen, dass der Zweck sofort erkennbar ist
+- **Linter-Fehler beheben** – Nach Änderungen prüfen und eigene Fehler korrigieren
+- **Public API stabil halten** – Externe Hosts importieren nur aus `gears-clash-game`, nie aus internen Pfaden (siehe `src/index.ts`)

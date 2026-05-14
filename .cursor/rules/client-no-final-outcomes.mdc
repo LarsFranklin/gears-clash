@@ -1,0 +1,33 @@
+---
+description: Trust-Boundary — der Client ist NICHT die Quelle der Wahrheit. Finale Spin-/Bonus-/Echtgeld-Logik gehört auf den Server.
+alwaysApply: true
+---
+
+# Client ist NICHT Source of Truth
+
+Diese Regel gilt **ausnahmslos** für `gears-clash-game`.
+
+## Pflicht
+
+- **Anzeige-Daten kommen vom Server.** Felder wie `SpinResult.winAmount`, `balanceAfter`, `bonus.payload` werden gerendert, **nicht** im Client neu berechnet oder „korrigiert".
+- **`MockGameApiAdapter`** ist **nur** für lokale Demo / Tests. Seine Werte sind synthetisch und niemals als Produkt-RTP / Echtgeldlogik tauglich.
+- **Bonus-Outcomes** (`gears_clash`-Multiplier, `heist_run`-Free-Spins-Anzahl, `deadlock_mode`-Lives/Phases) liegen ausschließlich im Server-Payload.
+
+## Verboten
+
+- Eigene Win-/Loss-Berechnung im Client (auch nicht „nur als Hilfe").
+- Bonus-Trigger im Client entscheiden (z. B. „3 Bonus-Symbole sichtbar → Bonus auslösen") — der Server entscheidet, ob `result.bonus` gesetzt ist.
+- Multiplier-/Mathematik-Logik in `core/`, `renderer/` oder `features/` außer rein deskriptiv.
+- Echtgeld-/Regulierungs-Anforderungen im Package implementieren — das ist Backend-Verantwortung.
+
+## Was erlaubt ist
+
+- **Validierung** (z. B. `ReelEngine.validateStops`) — formelle Konsistenz, kein Inhalt.
+- **Anzeige-Hilfen** wie `clampHighlights`, `sanitizeWinLines` — Defense-in-Depth gegen kaputte Server-Daten, kein Auszahlungs-Override.
+- **Anti-Cheat-Hinweis im Code/README** — explizit dokumentieren, dass der Server die Wahrheit hat.
+
+## Verwandte Rules / Skills
+
+- `bonus-payload-contract.mdc`
+- `renderer-display-only.mdc`
+- `slot-game-architecture` Skill — Trust-Boundary-Sektion

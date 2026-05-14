@@ -1,0 +1,77 @@
+---
+description: GitLab-Konventionen für Commits, Branches, Issues und Merge Requests
+alwaysApply: true
+---
+
+# GitLab-Konventionen
+
+## Commits
+
+- **Conventional Commits:** `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `style:`
+- **Issue-Referenz** in Commits: `#123` einfügen, wenn eine Änderung zu einem Issue gehört
+- **Sprache:** Deutsch (Projektkonvention)
+
+## Branches
+
+- `main` – Stabiler Branch (Production / Release)
+- `feature/<beschreibung>` – Neue Features
+- `fix/<beschreibung>` – Bugfixes
+- `chore/<beschreibung>` – Wartung
+
+## Merge Requests
+
+- Kleine, fokussierte MRs mit klarem Zweck
+- `Closes #123` in der Beschreibung, um Issues automatisch zu schließen
+
+## Issues
+
+### Titel-Format (Pflicht)
+
+Alle Issues: **`[Präfix] - Kurztitel`** (eckige Klammern, Leerzeichen – Bindestrich – Leerzeichen).
+
+| Präfix | Beispiel |
+|--------|----------|
+| `[Review]` | `[Review] - PixiSlotRenderer` |
+| `[Bug]` | `[Bug] - Spin friert bei zweitem Klick ein` |
+| `[Task]` | `[Task] - HttpGameApiAdapter Retry-Logik` |
+| `[Feature]` | `[Feature] - Heist-Run Bonus-Modus` |
+| `[Epic]` / `[Issue]` / `[Incident]` / `[Enhancement]` / `[Chore]` / `[Docs]` | analog |
+| `[Fixes]` | `[Fixes] - Reel-Renderer` (Sammel-Findings) |
+
+Verknüpfung zum Eltern-/Review-Issue in der **Beschreibung:** **`[Parent] - #<IID>`**.
+
+## Pflicht-Labels
+
+Jedes Issue braucht mindestens:
+
+- `type::*` (`bug`, `task`, `feature`, `enhancement`, `epic`, `chore`, `docs`, `incident`)
+- `priority::*` (`critical`, `high`, `medium`, `low`)
+- `module::*` **oder** `feature::*` (Zuordnung zum Bereich, siehe `.gitlab/README.md`)
+
+## Milestone
+
+- Jedes Issue **soll** einem Versions-Milestone zugewiesen werden (z. B. `v0.1.0`, `v0.2.0`).
+- Es gibt **keinen** Pflicht-Changelog im Repo — Releases werden aus den auf einem Milestone geschlossenen Issues abgeleitet.
+
+### Zuweisungs-Logik (wenn der Nutzer keinen Milestone nennt)
+
+1. **Genau ein** offener Milestone im Projekt → **automatisch** diesen zuweisen.
+2. **Kein** offener Milestone → Issue bewusst **ohne** Milestone anlegen (z. B. zwischen Releases). Im Issue-Kommentar bzw. der Antwort vermerken.
+3. **Mehrere** offene Milestones → **nicht raten**. Zuerst klären (siehe `feature-request` und `bugfix-request` Skills: Plan-Modus oder Rückfrage), dann anlegen.
+
+Bei aktiver Issue-Bearbeitung gilt zusätzlich `issue-execution-management.mdc` (Milestone passt zum Release-Ziel).
+
+## Templates
+
+- Templates aus `.gitlab/issue_templates/` verwenden (Bug, Task, Issue, Epic, Incident).
+
+## Abschluss-Prüfung
+
+Nach dem Erstellen eines Issues immer prüfen:
+
+- [ ] Titel-Schema `[Präfix] - Kurztitel`
+- [ ] `type::*` gesetzt
+- [ ] `priority::*` gesetzt
+- [ ] `module::*` oder `feature::*` gesetzt
+- [ ] Milestone zugewiesen
+- [ ] Bei Sub-Issue: `[Parent] - #IID` in Beschreibung

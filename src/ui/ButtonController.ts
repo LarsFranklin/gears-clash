@@ -12,6 +12,7 @@ export interface ButtonControllerOptions {
 export class ButtonController {
   private btn: HTMLButtonElement | null = null;
   private ownsButton = false;
+  private listeners: { handler: () => void; controller: AbortController }[] = [];
 
   constructor(private readonly options: ButtonControllerOptions = {}) {}
 
@@ -40,14 +41,23 @@ export class ButtonController {
   }
 
   onClick(handler: () => void): void {
-    this.btn?.addEventListener('click', handler);
+    if (!this.btn) return;
+    const controller = new AbortController();
+    this.btn.addEventListener('click', handler, { signal: controller.signal });
+    this.listeners.push({ handler, controller });
   }
 
   offClick(handler: () => void): void {
-    this.btn?.removeEventListener('click', handler);
+    const idx = this.listeners.findIndex((l) => l.handler === handler);
+    if (idx >= 0) {
+      this.listeners[idx]!.controller.abort();
+      this.listeners.splice(idx, 1);
+    }
   }
 
   destroy(): void {
+    for (const { controller } of this.listeners) controller.abort();
+    this.listeners = [];
     if (this.ownsButton) this.btn?.remove();
     this.btn = null;
   }

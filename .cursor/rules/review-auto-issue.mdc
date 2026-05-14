@@ -1,0 +1,38 @@
+---
+description: Automatische Issue-Suche beim Feature/Modul Review (Issue: auto)
+alwaysApply: true
+---
+
+# Review – Auto Issue
+
+Wenn ein Review-Prompt das Feld `Issue: auto` enthält, MUSST du folgendes tun, bevor du mit dem Review beginnst:
+
+## Ablauf
+
+1. **Feature-Namen lesen** – aus `Feature / Modul: [Name]` im Prompt.
+
+2. **GitLab-Suche** – via `list_issues` mit:
+   - `search: [Review] - [Feature-Name]` (aktuelles Format)
+   - bei Bedarf auch nur Feature-Name
+   - `state: opened`
+   - `scope: all`
+   Bevorzugt Titel mit **`[Review] -`**.
+
+3. **Ergebnis auswerten:**
+   - **Genau 1 Treffer** (oder klar passendes `[Review] - …`) → verwenden.
+   - **Mehrere Treffer** → Top-3, Nutzer wählt.
+   - **Kein Treffer** → Neues Issue:
+     - **Titel:** `[Review] - [Feature-Name]` (Schema: `gitlab-conventions.mdc`)
+     - Label: `type::task` + `priority::medium` + passendes `module::*`
+     - Milestone (aktueller Entwicklungs-Milestone)
+
+4. **Ab dann** gilt diese Issue-ID als aktives Review-Issue.
+
+## Unter-Issues
+
+In der Beschreibung: **`[Parent] - #<IID>`** (IID des Haupt-Review-Issues).
+
+## Wichtig
+
+- Kein Review ohne gültige Issue-ID.
+- Nur das aktuelle Repository durchsuchen (`franklin-slots/gears-clash`).

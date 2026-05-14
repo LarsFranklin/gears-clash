@@ -11,6 +11,7 @@ export default defineConfig(({ command }) => {
   return {
     build: {
       emptyOutDir: true,
+      sourcemap: true,
       lib: {
         entry: resolve(__dirname, 'src/index.ts'),
         name: 'GearsClash',
@@ -23,6 +24,11 @@ export default defineConfig(({ command }) => {
           /** Ein ESM-Bundle ohne Pixi-Code-Splitting — Host-Import bleibt eine Datei. */
           inlineDynamicImports: true,
           assetFileNames: 'style[extname]',
+          /**
+           * Named-Exports — IIFE-Konsumenten greifen auf `GearsClash.GearsClashGame`,
+           * `GearsClash.MockGameApiAdapter`, … zu. Kein ungewollter `default`-Wrapper.
+           */
+          exports: 'named',
         },
       },
       cssCodeSplit: false,

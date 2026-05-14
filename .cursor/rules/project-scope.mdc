@@ -1,0 +1,31 @@
+---
+description: GitLab-Projektscope – nur mit Gears Clash interagieren, niemals fremde Projekte verändern
+alwaysApply: true
+---
+
+# Projektscope – GitLab
+
+## Dieses Projekt
+
+- **Name:** Gears Clash
+- **Package:** `gears-clash-game`
+- **GitLab:** `franklin-slots/gears-clash`
+- **Default-Branch:** `main`
+
+## Verbotene Projekte (nur Lesezugriff zur Referenz)
+
+Alle anderen Repositories der Gruppen `franklin-slots`, `franklins-apps`, `franklins-sites`, `ffo-project`, `rooftop-club-highrise` etc. — z. B.:
+
+- `franklins-apps/odds69` (Referenz für GitLab-Workflow)
+- `franklins-apps/project-template` (Skill-/Issue-Vorlagen)
+- `franklins-apps/daznexus`
+- `franklins-apps/javis-core`
+- `franklins-apps/nectar-ui`
+- alle weiteren Repos in `franklins-apps/` und Schwester-Gruppen
+
+## Regeln
+
+1. **Nur eigenes Projekt:** Issues, MRs, Commits, Releases, Labels und Dateiänderungen ausschließlich in `franklin-slots/gears-clash`.
+2. **Kein Schreibzugriff auf fremde Projekte:** Keine Issues, Notes, Labels, Branches in fremden Projekten anlegen oder ändern.
+3. **Bei Verwechslungsgefahr:** Vor jeder GitLab-Aktion die `project_id` (oder `path_with_namespace`) prüfen — sie muss zu `franklin-slots/gears-clash` gehören.
+4. **Lesezugriff** auf andere Projekte (z. B. Odds69 oder `project-template`) ist erlaubt, um Skill-Vorlagen, Issue-Konventionen oder Architektur-Muster zu vergleichen.

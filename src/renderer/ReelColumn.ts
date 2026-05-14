@@ -1,97 +1,174 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import type { GameConfig, SymbolDef } from '../config/types';
 import { SymbolRegistry } from '../core/SymbolRegistry';
 import { drawProceduralSymbol } from './proceduralSymbol';
-import { paletteFor } from './symbolCard';
+import { pickWeightedSymbolId } from '../util/pickWeightedSymbolId';
+import { paletteFor, type SymbolPalette } from './symbolCard';
+import { SLOT_SYMBOL_MARGIN_NORM } from './slotFrameSkin';
 
 const STRIP_LEN = 30;
-const ROW_GAP = 3;
+/** Enge Reel-Dichte (Design: wenig Leerraum zwischen Symbolzeilen). */
+export const ROW_GAP = 2;
 
 export class SymbolSlot extends Container {
   readonly rim = new Graphics();
   readonly face = new Graphics();
+  readonly bevel = new Graphics();
+  readonly spec = new Graphics();
   readonly icon = new Graphics();
+  private iconSprite: Sprite | null = null;
   readonly glow = new Graphics();
   readonly winRing = new Graphics();
-  readonly microLabel = new Text({
-    text: '',
-    style: {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: 8,
-      fontWeight: '600',
-      fill: 0x9898a8,
-      letterSpacing: 0.5,
-    },
-  });
 
   private cs = 48;
   private y0 = 0;
+  private lastSymbolId: string | null = null;
+  private lastIconTimeBucket = -1;
+  private lastIconEmphasize: boolean | null = null;
+  private lastPal: SymbolPalette | null = null;
+  private _popScale = 1;
+  private popStartTime = 0;
+  private popDuration = 0;
 
   constructor() {
     super();
-    this.microLabel.anchor.set(0.5, 1);
-    this.addChild(this.rim, this.face, this.glow, this.icon, this.winRing, this.microLabel);
+    this.addChild(this.rim, this.face, this.bevel, this.spec, this.glow, this.icon, this.winRing);
+  }
+
+  triggerPop(duration = 320): void {
+    this._popScale = 1;
+    this.popStartTime = performance.now();
+    this.popDuration = duration;
+  }
+
+  private updatePopScale(): void {
+    if (this.popDuration <= 0) return;
+    const elapsed = performance.now() - this.popStartTime;
+    if (elapsed >= this.popDuration) {
+      this._popScale = 1;
+      this.popDuration = 0;
+      return;
+    }
+    const u = elapsed / this.popDuration;
+    /** Kurzer ~5%-„Pulse“ für Gewinn-Highlights (dezent, kein starkes Bounce). */
+    const peak = 1.05;
+    if (u < 0.35) {
+      this._popScale = 1 + (peak - 1) * (u / 0.35);
+    } else if (u < 0.65) {
+      this._popScale = peak - (peak - 1) * 0.55 * ((u - 0.35) / 0.3);
+    } else {
+      this._popScale = 1 + (peak - 1) * 0.45 * (1 - (u - 0.65) / 0.35);
+    }
   }
 
   layout(cellSize: number, pitch: number): void {
     this.cs = cellSize;
     this.y0 = (pitch - cellSize) / 2;
-    for (const g of [this.rim, this.face, this.glow, this.icon, this.winRing]) {
+    for (const g of [this.rim, this.face, this.bevel, this.spec, this.glow, this.icon, this.winRing]) {
       g.position.set(0, this.y0);
     }
-    this.microLabel.position.set(cellSize / 2, this.y0 + cellSize - 3);
-    this.microLabel.style.fontSize = Math.max(7, Math.floor(cellSize * 0.11));
+    if (this.iconSprite) {
+      this.iconSprite.position.set(cellSize / 2, this.y0 + cellSize / 2);
+    }
+    /** Skalierung von der Zellenmitte aus (Pop-Animation), Position setzt weiterhin der Strip. */
+    this.pivot.set(cellSize / 2, pitch / 2);
+    this.scale.set(1);
+    this._popScale = 1;
+    this.popDuration = 0;
+    this.lastSymbolId = null;
+    this.lastIconTimeBucket = -1;
+    this.lastIconEmphasize = null;
+    this.lastPal = null;
   }
 
   paint(
     symbolId: string,
     registry: SymbolRegistry,
     timeSec: number,
-    opts: { winHighlight: boolean; winPulse: number; frozen: boolean },
+    opts: {
+      winHighlight: boolean;
+      bonusRevealHighlight: boolean;
+      winPulse: number;
+      frozen: boolean;
+      symbolTextures?: ReadonlyMap<string, Texture> | null;
+    },
   ): void {
     const def = registry.get(symbolId);
     const cs = this.cs;
     const radius = Math.max(5, Math.floor(cs * 0.12));
-    const rimW = Math.max(2, Math.floor(cs * 0.04));
     const pal = paletteFor(def, symbolId);
 
-    this.rim.clear();
-    this.rim.roundRect(0, 0, cs, cs, radius);
-    this.rim.fill({ color: pal.rim });
-    this.rim.stroke({
-      width: pal.rimStrokeW,
-      color: pal.rimStroke,
-      alignment: 0,
-    });
+    const symbolChanged = symbolId !== this.lastSymbolId;
 
-    const inset = rimW;
-    this.face.clear();
-    this.face.roundRect(
-      inset,
-      inset,
-      cs - inset * 2,
-      cs - inset * 2,
-      Math.max(3, radius - 2),
-    );
-    this.face.fill({ color: pal.face });
-    if (pal.faceStrokeA > 0) {
-      this.face.stroke({
-        width: 1,
-        color: pal.faceStroke,
-        alpha: pal.faceStrokeA,
-      });
+    if (symbolChanged) {
+      // Nur Symbole — kein Karten-/Slot-Rahmen (Rim/Face/Bevel/Specular).
+      this.rim.clear();
+      this.face.clear();
+      this.bevel.clear();
+      this.spec.clear();
+
+      this.lastSymbolId = symbolId;
+      this.lastPal = pal;
+      this.lastIconTimeBucket = -1;
+      this.lastIconEmphasize = null;
     }
 
-    drawProceduralSymbol(this.icon, symbolId, def, cs, opts.frozen ? 0 : timeSec);
+    const iconTime = opts.frozen ? 0 : timeSec;
+    const iconBucket = Math.floor(iconTime * 30);
+    const emphasizeSpecial =
+      opts.winHighlight || opts.bonusRevealHighlight;
+    const tex = opts.symbolTextures?.get(symbolId) ?? null;
+
+    if (
+      symbolChanged ||
+      iconBucket !== this.lastIconTimeBucket ||
+      this.lastIconEmphasize !== emphasizeSpecial ||
+      (tex && this.iconSprite?.texture !== tex)
+    ) {
+      if (tex) {
+        this.icon.clear();
+        this.icon.visible = false;
+        if (!this.iconSprite) {
+          this.iconSprite = new Sprite();
+          this.iconSprite.anchor.set(0.5, 0.5);
+          const idx = this.getChildIndex(this.winRing);
+          this.addChildAt(this.iconSprite, idx);
+        }
+        this.iconSprite.texture = tex;
+        this.iconSprite.visible = true;
+        const pad = cs * SLOT_SYMBOL_MARGIN_NORM;
+        const inner = Math.max(1, cs - pad * 2);
+        const sc = inner / Math.max(tex.width, tex.height);
+        this.iconSprite.scale.set(sc);
+        this.iconSprite.position.set(cs / 2, this.y0 + cs / 2);
+        this.lastIconTimeBucket = iconBucket;
+        this.lastIconEmphasize = emphasizeSpecial;
+      } else {
+        if (this.iconSprite) {
+          this.iconSprite.visible = false;
+        }
+        this.icon.visible = true;
+        drawProceduralSymbol(this.icon, symbolId, def, cs, iconTime, this.lastPal ?? undefined, {
+          emphasizeSpecial,
+        });
+        this.lastIconTimeBucket = iconBucket;
+        this.lastIconEmphasize = emphasizeSpecial;
+      }
+    }
 
     this.glow.clear();
-    if (def?.kind === 'bonus' && !opts.frozen) {
+    if (
+      emphasizeSpecial &&
+      (def?.kind === 'bonus' || def?.kind === 'wild') &&
+      !opts.frozen
+    ) {
       const throb = 0.35 + 0.65 * Math.sin(timeSec * 6);
-      this.glow.roundRect(1, 1, cs - 2, cs - 2, radius);
+      const glowColor = pal.glowColor ?? pal.rimStroke;
+      this.glow.roundRect(0, 0, cs, cs, radius);
       this.glow.stroke({
-        width: 2 + throb * 2,
-        color: pal.rimStroke,
-        alpha: 0.25 + throb * 0.35,
+        width: 2 + throb * 1.5,
+        color: glowColor,
+        alpha: 0.35 + throb * 0.4,
       });
     }
 
@@ -102,21 +179,15 @@ export class SymbolSlot extends Container {
       const y = this.y0;
       this.winRing.roundRect(-2, y - 2, cs + 4, cs + 4, radius + 2);
       this.winRing.stroke({
-        width: 3 + a * 2,
+        width: 2 + a * 2,
         color: 0xffcc44,
-        alpha: 0.35 + a * 0.45,
+        alpha: 0.45 + a * 0.45,
       });
     }
 
-    const short = shortLabel(def, symbolId);
-    this.microLabel.text = short;
-    this.microLabel.style.fill = pal.text;
+    this.updatePopScale();
+    this.scale.set(this._popScale);
   }
-}
-
-function shortLabel(def: SymbolDef | undefined, symbolId: string): string {
-  const raw = def?.label ?? symbolId;
-  return raw.length <= 5 ? raw : raw.slice(0, 4) + '…';
 }
 
 export class ReelColumn {
@@ -131,6 +202,7 @@ export class ReelColumn {
   private pitch = 52;
   private cellSize = 48;
   private rows = 5;
+  private symbolTextures: ReadonlyMap<string, Texture> | null = null;
   /** Index des obersten sichtbaren Strip-Slots. */
   private focusIndex = 10;
   /** Nur Darstellung: Offset während Wartephase (Normal-Spin), px nach unten entlang dem Strip. */
@@ -152,6 +224,14 @@ export class ReelColumn {
     return this.strip.y;
   }
 
+  setSymbolTextures(map: ReadonlyMap<string, Texture> | null): void {
+    this.symbolTextures = map;
+  }
+
+  get minStripY(): number {
+    return -(this.stripSymbols.length - this.rows) * this.pitch;
+  }
+
   setStripY(y: number): void {
     this.strip.y = y;
   }
@@ -165,15 +245,7 @@ export class ReelColumn {
 
     const w = cellSize;
     const h = visibleH;
-    const shade = 0x101218 + (colIndex % 2) * 0x020203;
     this.bg.clear();
-    this.bg.roundRect(0, 0, w, h, 6);
-    this.bg.fill({ color: shade });
-    this.bg.stroke({
-      width: 1,
-      color: colIndex < this.config.grid.reels - 1 ? 0x1a1a22 : 0x14141a,
-      alpha: 0.9,
-    });
 
     this.maskShape.clear();
     this.maskShape.roundRect(0, 0, w, h, 5);
@@ -182,16 +254,19 @@ export class ReelColumn {
     this.strip.removeChildren();
     this.slots = [];
     this.stripSymbols = Array.from({ length: STRIP_LEN }, () =>
-      pickRandomId(this.registry),
+      pickRandomWeightedId(this.registry, this.config),
     );
     for (let i = 0; i < STRIP_LEN; i++) {
       const slot = new SymbolSlot();
       slot.layout(cellSize, this.pitch);
-      slot.position.set(0, i * this.pitch);
+      /** Pivot in Zellenmitte: Position muss Zentrum der Spur sein, sonst wandert die Zelle nach links. */
+      slot.position.set(cellSize / 2, i * this.pitch + this.pitch / 2);
       slot.paint(this.stripSymbols[i]!, this.registry, 0, {
         winHighlight: false,
+        bonusRevealHighlight: false,
         winPulse: 0,
         frozen: false,
+        symbolTextures: this.symbolTextures,
       });
       this.strip.addChild(slot);
       this.slots.push(slot);
@@ -213,7 +288,9 @@ export class ReelColumn {
   advanceIdleScroll(dtMs: number, rowsPerSec: number): void {
     if (rowsPerSec <= 0 || dtMs <= 0) return;
     this.idleScrollOffsetPx += (this.pitch * rowsPerSec * dtMs) / 1000;
-    const wrap = this.pitch * 22;
+    // Nur so weit scrollen, wie oberhalb des Fokus echte Slots vorhanden sind.
+    // Sonst rutscht der Strip aus der Maske und die Rolle wirkt kurz "leer".
+    const wrap = this.pitch * Math.max(1, this.focusIndex);
     if (this.idleScrollOffsetPx >= wrap) {
       this.idleScrollOffsetPx -= wrap;
     }
@@ -225,8 +302,10 @@ export class ReelColumn {
     this.stripSymbols[index] = id;
     this.slots[index]?.paint(id, this.registry, 0, {
       winHighlight: false,
+      bonusRevealHighlight: false,
       winPulse: 0,
       frozen: false,
+      symbolTextures: this.symbolTextures,
     });
   }
 
@@ -251,7 +330,7 @@ export class ReelColumn {
     let focusEnd = this.focusIndex + spinTravel;
     let guard = 0;
     while (focusEnd > maxFocus && guard++ < 8) {
-      this.compactStrip(column);
+      this.compactStrip(this.captureVisibleColumn());
       const maxTravel = Math.max(5, maxFocus - this.focusIndex);
       spinTravel = Math.min(
         travelMin + Math.floor(Math.random() * travelSpan),
@@ -259,14 +338,22 @@ export class ReelColumn {
       );
       focusEnd = this.focusIndex + spinTravel;
     }
+
+    const visibleStart = this.focusIndex;
+    const visibleEnd = this.focusIndex + this.rows;
+    const targetStart = focusEnd;
+    const targetEnd = focusEnd + this.rows;
+
     for (let r = 0; r < this.rows; r++) {
-      this.setStripSymbolAt(focusEnd + r, column[r] ?? column[0]!);
+      this.setStripSymbolAt(targetStart + r, column[r] ?? column[0]!);
     }
+
     for (let i = 0; i < this.stripSymbols.length; i++) {
-      if (i < focusEnd || i >= focusEnd + this.rows) {
-        this.setStripSymbolAt(i, pickRandomId(this.registry));
-      }
+      if (i >= visibleStart && i < visibleEnd) continue;
+      if (i >= targetStart && i < targetEnd) continue;
+      this.setStripSymbolAt(i, pickRandomWeightedId(this.registry, this.config));
     }
+
     const y0 = -this.focusIndex * this.pitch;
     const y1 = -focusEnd * this.pitch;
     return { y0, y1, focusEnd, spinTravel };
@@ -283,10 +370,18 @@ export class ReelColumn {
     }
   }
 
+  triggerSymbolPop(row: number): void {
+    const slotIndex = this.focusIndex + row;
+    if (slotIndex >= 0 && slotIndex < this.slots.length) {
+      this.slots[slotIndex]?.triggerPop();
+    }
+  }
+
   paintAll(
     timeSec: number,
     flags: {
       highlightRows: Set<number>;
+      bonusRevealRows: Set<number>;
       winPulse: number;
       frozen: boolean;
     },
@@ -298,10 +393,16 @@ export class ReelColumn {
         row >= 0 &&
         row < this.rows &&
         flags.highlightRows.has(row);
+      const bonusH =
+        row >= 0 &&
+        row < this.rows &&
+        flags.bonusRevealRows.has(row);
       this.slots[i]?.paint(id, this.registry, timeSec, {
         winHighlight: winH,
+        bonusRevealHighlight: bonusH,
         winPulse: flags.winPulse,
         frozen: flags.frozen,
+        symbolTextures: this.symbolTextures,
       });
     }
   }
@@ -313,7 +414,7 @@ export class ReelColumn {
     }
     for (let i = 0; i < this.stripSymbols.length; i++) {
       if (i < newFocus || i >= newFocus + this.rows) {
-        this.stripSymbols[i] = pickRandomId(this.registry);
+        this.stripSymbols[i] = pickRandomWeightedId(this.registry, this.config);
       }
     }
     this.focusIndex = newFocus;
@@ -322,14 +423,35 @@ export class ReelColumn {
     for (let i = 0; i < this.slots.length; i++) {
       this.slots[i]?.paint(this.stripSymbols[i]!, this.registry, 0, {
         winHighlight: false,
+        bonusRevealHighlight: false,
         winPulse: 0,
         frozen: false,
+        symbolTextures: this.symbolTextures,
       });
     }
   }
+
+  private captureVisibleColumn(): string[] {
+    const out: string[] = [];
+    for (let r = 0; r < this.rows; r++) {
+      out.push(this.getStripSymbolAt(this.focusIndex + r));
+    }
+    return out;
+  }
+
+  destroy(): void {
+    for (const slot of this.slots) {
+      slot.destroy({ children: true });
+    }
+    this.slots = [];
+    this.bg.destroy();
+    this.maskShape.destroy();
+    this.strip.destroy({ children: true });
+    this.view.destroy({ children: false });
+    this.symbolTextures = null;
+  }
 }
 
-function pickRandomId(registry: SymbolRegistry): string {
-  const ids = registry.allIds;
-  return ids[Math.floor(Math.random() * ids.length)]!;
+function pickRandomWeightedId(registry: SymbolRegistry, config: GameConfig): string {
+  return pickWeightedSymbolId(registry.allIds, config.symbolWeights, Math.random);
 }

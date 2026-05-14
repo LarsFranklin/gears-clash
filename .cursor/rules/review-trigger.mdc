@@ -1,0 +1,21 @@
+---
+description: Aktiviert Feature/Modul-Review (/modul-review; optional GC-REVIEW)
+alwaysApply: true
+---
+
+# Review-Trigger
+
+**Nur wenn die aktuelle Nutzer-Nachricht eines dieser Trigger enthält** (Groß-/Kleinschreibung egal):
+
+- **`/modul-review`**
+- *(Projektkürzel, optional)* **`GC-REVIEW`**
+
+…dann gilt:
+
+1. **`REVIEW.md`** im Projektroot vollständig lesen und den Ablauf dort strikt einhalten (Ziel, Grundregeln, Reviewprozess, Sonstige Regeln).
+2. **Feature / Modul:** aus dem Rest der Nachricht ableiten (z. B. „/modul-review ReelEngine" → Modul *ReelEngine*).
+3. **Issue:** Wenn im Prompt `Issue: auto` steht oder der Nutzer kein Issue nennt, **`review-auto-issue.mdc`** befolgen (GitLab-Suche / Auswahl / neues Issue).
+4. **Issue-Titel:** einheitlich **`[Präfix] - Kurztitel`** (`gitlab-conventions.mdc`). Review-Hauptissue: **`[Review] - <Modulname>`**.
+5. Erst **dokumentieren** (Issue-Kommentar oder Sub-Issue), dann fixen — wie in `REVIEW.md`.
+
+**Ohne** einen der Trigger oben: diese Regel ignorieren (kein automatischer Review-Modus).

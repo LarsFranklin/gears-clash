@@ -1,11 +1,18 @@
 /** Netzwerk-/Transportfehler (keine Antwort, Timeout, CORS, etc.). */
+export type NetworkErrorKind = 'transport' | 'timeout';
+
 export class NetworkError extends Error {
   readonly code = 'NETWORK_ERROR' as const;
+  readonly kind: NetworkErrorKind;
   override readonly cause?: unknown;
-  constructor(message: string, options?: { cause?: unknown }) {
+  constructor(
+    message: string,
+    options?: { cause?: unknown; kind?: NetworkErrorKind },
+  ) {
     super(message);
     this.name = 'NetworkError';
     this.cause = options?.cause;
+    this.kind = options?.kind ?? 'transport';
   }
 }
 

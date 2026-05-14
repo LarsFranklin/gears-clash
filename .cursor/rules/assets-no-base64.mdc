@@ -1,0 +1,38 @@
+---
+description: Kein Base64 für Bilder/Sounds. Assets immer über das AssetManifest referenzieren. Verstärkt die User-Rule "NO Base64".
+alwaysApply: true
+---
+
+# Assets — kein Base64, immer Manifest
+
+## Pflicht
+
+- **Bilder** (Symbole, Hintergründe, Frame-Decoration) und **Sounds** ausschließlich über **Pfade / URLs** laden.
+- Pfade liegen im **`AssetManifest`** (`src/config/assetManifest.ts`).
+- Pfade sind entweder absolut (`/assets/...`, `https://cdn.example/...`) **oder** relativ — relative Pfade werden mit `GameConfig.assets.basePath` über `resolveManifestPaths` zusammengeführt.
+- **Fallback-Pfade** im Manifest sind empfohlen (`fallback.symbol`, `fallback.sound`).
+- Symbol-IDs aus `defaultGameConfig.symbols` müssen alle einen Eintrag im Default-Manifest haben — der Konsistenz-Test in `src/__tests__/assetManifest.completeness.test.ts` muss grün bleiben.
+
+## Verboten
+
+- **Base64-Inline-Daten** in Code, JSON, Schema, README, Demo, Tests.
+- Embedded Binary-Strings für Bilder, Audio, Schriften, SVG-Icons.
+- Hartkodierte CDN-URLs außerhalb des Manifests (außer als **Default** im Standard-Manifest, das pro Theme überschreibbar ist).
+
+## Bei fehlenden Assets (v1)
+
+- Renderer fällt auf `proceduralSymbol.ts` zurück (vektorisierte Platzhalter).
+- Sounds sind optional (`SoundConfig.enabled = false` deaktiviert sie komplett).
+
+## Pflicht-Vorgehen bei neuen Assets
+
+1. ID festlegen (z. B. `bolt`, `bonus_gears_clash`, `reel_stop`).
+2. Pfad im `defaultAssetManifest` ergänzen (relativ oder absolut).
+3. Falls neues Symbol: auch in `defaultGameConfig.symbols` und ggf. `symbolWeights`.
+4. Konsistenz-Test in `src/__tests__/assetManifest.completeness.test.ts` läuft grün.
+5. Fallback-Pfad pflegen, wenn das Asset nicht garantiert existiert.
+
+## Verwandte Skills / Rules
+
+- `code-quality.mdc`
+- `pixi-slot-renderer` Skill — Symbole / Procedural-Fallback

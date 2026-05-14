@@ -32,12 +32,85 @@ export interface AnimationConfig {
   reelApproachExtraRows?: number;
   /** Wartende Spalten: Scroll-Geschwindigkeit (Symbol-Zeilen/Sek., nur Normal-Modus). */
   reelIdleScrollRowsPerSec?: number;
+  /**
+   * Multiplikator für die Idle-Bewegung noch nicht gestoppter Walzen, wenn Scatter-Anticipation
+   * aktiv ist. Typisch **> 1** (schnelleres „Tease“), **< 1** bewusst langsamer.
+   */
+  scatterAnticipationPendingReelSpeedMul?: number;
+  /**
+   * Zeitkonstante (ms) zum sanften Hoch-/Runterfahren des Idle-Multiplikators bei Scatter-Jagd
+   * (vermeidet harten Sprung 1 → Zielgeschwindigkeit).
+   */
+  scatterAnticipationIdleRampMs?: number;
+  /**
+   * Normal-Modus: Faktor auf `reelSequentialDurationMs`, wenn ab Walze 3 Scatter-Jagd aktiv ist
+   * (längere Rolle vor dem Einrasten).
+   */
+  scatterAnticipationSequentialStopStretch?: number;
+  /**
+   * Anteil (0–1) am Ende einer Jagd-Walze mit extra langsamem „Zeitlupen“-Einlaufen vor dem Stop.
+   */
+  scatterAnticipationTerminalSlowFraction?: number;
+  /**
+   * Zusätzliche Stop-Dauer (ms) pro betroffener Walze im **Turbo**-Modus, wenn nach Walze 1–2
+   * bereits Scatter-Jagd gilt (Prefix mit ≥2 gleichen Bonussymbolen).
+   */
+  scatterAnticipationTurboExtraStopMs?: number;
 }
 
 export interface SoundConfig {
   enabled: boolean;
   /** Basis-URL oder Prefix für Audio-Dateien (optional). */
   baseUrl?: string;
+}
+
+/**
+ * Basis-Spiel-/Demo-Mathe: Paylines, Linksnach-Rechts-Zählung, Scatter-Schwelle.
+ * Hosts sollten Produkt-Spins serverseitig auswerten; dieselbe Datenstruktur kann
+ * Abgleich/Debug mit dem Demo-Adapter (`MockGameApiAdapter`) ermöglichen.
+ */
+/** Payline-Typen für visuelle Kategorisierung im Info-Modal. */
+export type PaylineType =
+  | 'straight'
+  | 'diagonal'
+  | 'zigzag'
+  | 'v'
+  | 'industrial'
+  | 'hero';
+
+export interface SlotPaylineDefinition {
+  id: string;
+  /** Anzeigename (z. B. "Center Line", "Gear Rotation Left"). */
+  name?: string;
+  /** Visuelle Kategorie für Info-Modal-Darstellung. */
+  type?: PaylineType;
+  /** Pro Walze eine Zeilenindexierung (Länge = `grid.reels`, 0-basiert). */
+  rows: number[];
+}
+
+export interface SlotMathConfig {
+  /**
+   * Mindestlänge der Trefferkette von links (typisch 3). Wild zählt als gleiches Symbol
+   * (z. B. Symbol+Symbol+Wild = 3 Walzen Treffer).
+   */
+  minMatchLength: number;
+  /**
+   * Münzgewinn einer Linie: `floor(multiplier[slot] * bet / referenceBet)` mit
+   * `slot = runLen - minMatchLength` (geklammert auf Tabellenlänge), z. B. minMatch 3 →
+   * drei Tabellenstufen [3 OAK, 4 OAK, 5 OAK].
+   */
+  referenceBet: number;
+  /** Scatter mindestens diese Anzahl löst Bonus-ID aus (welche, siehe Auflösung). */
+  scatterMinBonus: number;
+  /** Bei gleicher maximaler Scatter-Zahl hier früheres Element gewinnt. */
+  scatterBonusResolutionOrder: readonly BonusId[];
+  /** Auszuwertende Gewinnpfade über das Raster (links nach rechts). */
+  paylines: readonly SlotPaylineDefinition[];
+  /**
+   * Multiplikatoren relativ `referenceBet`, Index `runLen - minMatchLength`.
+   * Bonussymbole entfallen hier.
+   */
+  lineMultipliersBySymbolId: Record<string, readonly number[]>;
 }
 
 export interface GameConfig {
@@ -47,6 +120,11 @@ export interface GameConfig {
   symbolWeights: Record<string, number>;
   /** Auszahlungs-/Linien-Referenz — nur zur Anzeige; finale Auswertung serverseitig. */
   payoutTable: Record<string, unknown>;
+  /**
+   * Optionale lokale/demo Auswertung — wenn gesetzt nutzt der `MockGameApiAdapter`
+   * diese Logik statt Fantasiedaten für Win-Betrag, Win-Lines und Bonus-Scatter.
+   */
+  slotMath?: SlotMathConfig;
   bonusTriggers: {
     /** Symbol-IDs, die einen Bonus auslösen können (Server entscheidet final). */
     bonusSymbolIds: string[];
@@ -58,6 +136,8 @@ export interface GameConfig {
   /** Pfade/Keys; echte Assets folgen später. */
   assets: { basePath: string };
   sound: SoundConfig;
+  /** Verfügbare Einsatzstufen. */
+  betLevels?: number[];
 }
 
 /** Request an den Server — JSON-serialisierbar. */
@@ -81,21 +161,96 @@ export interface SpinDisplayHighlight {
   row: number;
 }
 
+/** Optionale Detailanzeige pro Winline (rein visuell; Gewinn bleibt serverseitig maßgeblich). */
+export interface SpinDisplayWinLine {
+  id?: string;
+  /** Positionen auf der Gewinnlinie, typischerweise je Reel ein Punkt. */
+  points: SpinDisplayHighlight[];
+  /** Gewinnbetrag dieser Linie. */
+  amount: number;
+  /** Optionaler Kurztext (z. B. "3x Bolt"). */
+  label?: string;
+}
+
 export interface SpinResult {
   spinId: string;
-  /** 5 Reels × 5 Rows — jeweils Symbol-ID als String (wie in der API-Doku). */
+  /** 2D-Array [reel][row] — Dimensionen abhängig von grid.reels/rows. */
   reelStops: string[][];
   winAmount: number;
   balanceAfter: number;
   bonus: BonusSessionPayload | null;
   /** Optional: vom Host/Mock gelieferte Highlight-Positionen für Effekte. */
   displayHighlights?: SpinDisplayHighlight[];
+  /** Optional: vom Host/Mock gelieferte Winlines für sequenzielle Anzeige. */
+  displayWinLines?: SpinDisplayWinLine[];
+}
+
+/**
+ * `gears_clash` — zwei Multiplier-Gears battlen; der Winner-Multiplier wird auf
+ * eine komplette Reel als Full-Reel-Wild angewendet. Der Client visualisiert
+ * nur, der Server liefert den finalen Outcome.
+ */
+export interface GearsClashPayload {
+  gearA: { multiplier: number };
+  gearB: { multiplier: number };
+  /** 0-basierter Reel-Index, der zur Full-Reel-Wild wird (optional). */
+  winnerReel?: number;
+  /** Multiplier auf der Winner-Reel (Server-final). */
+  winnerMultiplier?: number;
+}
+
+/** Eine Sticky-Wild-Zelle in einem Heist-Run (kann optional einen Multiplier tragen). */
+export interface HeistRunStickyWild {
+  reel: number;
+  row: number;
+  /** Optional: Multiplier, den dieser Sticky-Wild trägt. */
+  multiplier?: number;
+}
+
+/**
+ * `heist_run` — Free Spins mit Sticky Wilds. Visualisierungs-Daten kommen vom
+ * Server; der Client malt die Sticky-Positionen und optionalen Multiplier.
+ */
+export interface HeistRunPayload {
+  /** Anzahl gewährter Free Spins (Gesamtbudget der Bonus-Runde). */
+  freeSpinsAwarded: number;
+  /** Aktueller Free-Spin-Zähler (1-basiert). */
+  currentSpin?: number;
+  /** Sticky-Wilds nach Server-Berechnung — Position + optional Multiplier. */
+  stickyWilds?: HeistRunStickyWild[];
+}
+
+export type DeadlockPhase = 'collection' | 'overdrive';
+
+export interface DeadlockCollectedSymbol {
+  reel: number;
+  row: number;
+  symbolId: string;
+  /** Optional: Multiplier-Wert, in Overdrive auf Gewinne angewendet. */
+  multiplier?: number;
+}
+
+/**
+ * `deadlock_mode` — Phase 1 (Collection) sammelt Multiplier/Gear/Wild-Symbole
+ * im Overdrive Storage; Phase 2 (Overdrive) verteilt sie und fährt einen
+ * finalen Reveal-Spin. Lives: 3 Reset bei Treffer, sonst -1.
+ *
+ * Client zeigt nur an, was der Server liefert.
+ */
+export interface DeadlockModePayload {
+  phase: DeadlockPhase;
+  /** Lives in der Collection-Phase (0–3). */
+  lives?: number;
+  /** Bisher gesammelte Symbole (Server-Sicht). */
+  collectedSymbols?: DeadlockCollectedSymbol[];
+  /** Verbleibende Spins in der aktuellen Phase. */
+  remainingSpins?: number;
 }
 
 export type BonusSessionPayload =
-  | { type: 'gears_clash'; payload: Record<string, unknown> }
-  | { type: 'heist_run'; payload: Record<string, unknown> }
-  | { type: 'deadlock_mode'; payload: Record<string, unknown> };
+  | { type: 'gears_clash'; payload: GearsClashPayload }
+  | { type: 'heist_run'; payload: HeistRunPayload }
+  | { type: 'deadlock_mode'; payload: DeadlockModePayload };
 
 export type GameEventName =
   | 'spin:start'

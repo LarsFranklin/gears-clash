@@ -1,0 +1,29 @@
+---
+description: Push- und Release-Sicherheit für Gears Clash (npm-Package / CI-Artefakt)
+alwaysApply: true
+---
+
+# Push- und Release-Sicherheit
+
+Gears Clash ist ein **distributables Package** (npm / GitLab Package Registry / ZIP). Es wird **nicht** auf Vercel/Cloudflare gehostet.
+
+## Allgemein
+
+- **Niemals `git push --force`** ohne explizite Anweisung
+- **Commits nur erstellen**, wenn der Nutzer es explizit verlangt
+- **Push nur nach Bestätigung** des Nutzers; vorher kurz erwähnen, falls die GitLab-Pipeline (SAST, Secret-Detection) auf den Branch reagiert
+
+## Release / Tag
+
+- Tags / Releases (`vX.Y.Z`) erst nach ausdrücklicher Anweisung anlegen.
+- Release-Notizen aus den auf dem Milestone **geschlossenen Issues** ableiten — nicht aus einer Changelog-Datei (siehe Skill `gitlab-release`).
+- `package.json` → `version` ist die Quelle der Wahrheit.
+
+## Build-Skripte
+
+- `npm run build` (Vite Lib + `tsc -p tsconfig.build.json` + Schema-Copy) erst nach Bestätigung ausführen.
+- **`npm run dev`** nur starten, wenn der Nutzer es explizit verlangt — keine spontanen Dev-Server-Starts.
+
+## Secrets
+
+- Niemals Tokens, API-Keys oder URLs hartcodieren — der Host stellt seine Endpoints über `HttpGameApiAdapter`-Optionen zur Verfügung.

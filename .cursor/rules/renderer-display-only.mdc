@@ -1,0 +1,46 @@
+---
+description: Renderer (PixiSlotRenderer, ReelColumn, AnimationController) zeigt nur an — keine Spielentscheidungen.
+alwaysApply: true
+---
+
+# Renderer ist Anzeige, nicht Logik
+
+`src/renderer/` darf **nicht**:
+
+- Win/Loss/Bonus-Trigger entscheiden.
+- Multiplier oder RTP-Mathematik berechnen.
+- Server-Payloads ignorieren oder „korrigieren".
+- DOM außerhalb des Canvas-Hosts manipulieren (kein `document.body.appendChild`).
+- HTTP-Requests senden.
+
+`src/renderer/` darf:
+
+- `SymbolRegistry` aus `core/` für reine Symbol-Lookups importieren.
+- `SpinResult.reelStops`, `displayHighlights`, `displayWinLines` visualisieren.
+- Hooks (`onSound`, `onShake`) auslösen — das DOM-Shake passiert im Frame-Element via CSS-Klasse, nicht im Renderer.
+- Pixi v8 Container/Graphics/Sprites verwenden.
+
+## Lifecycle
+
+- `init(parent)` ist idempotent (Guard gegen Doppel-Init).
+- `destroy()` setzt `destroyed = true`, increment `spinToken`, ruft `app.destroy({ removeView: true }, { children: true, texture: true, textureSource: true })` und nullt alle Referenzen.
+- rAF-Loops (Spin, Win-Feedback, Win-Line) capturen `this.spinToken` und brechen ab, wenn `token !== this.spinToken || this.destroyed`.
+
+## Strip-Filler-Invariante (kritisch)
+
+`ReelColumn.prepareSpinTargets`:
+
+- Setzt **Ziel-Range** (`focusEnd … focusEnd + rows - 1`) auf `column[r]`.
+- Füllt **Reise-/Pufferzonen** mit Random-Symbolen.
+- **Ändert NIE** die aktuell sichtbare Range `focusIndex … focusIndex + rows - 1`, bevor der Strip dort hingescrollt ist — sonst entsteht ein Pop-In.
+
+## Performance
+
+- Kein `setInterval` für Animationen — `requestAnimationFrame` oder `Ticker`.
+- `setTimeout` nur für Resize-Debounce / kurzlebige CSS-Cooldowns.
+- Symbol-Caching pro Slot (`SymbolSlot.lastSymbolId`, `lastIconTimeBucket`) beibehalten — keine Vollneuzeichnung pro Frame, wenn nichts geändert wurde.
+
+## Verwandte Skills
+
+- `pixi-slot-renderer`
+- `slot-game-architecture`

@@ -29,8 +29,10 @@ export class SlotEngine {
     if (this.state === 'spinning') this.state = 'resolving';
   }
 
-  enterBonus(): void {
+  enterBonus(): boolean {
+    if (this.state !== 'spinning' && this.state !== 'resolving') return false;
     this.state = 'bonus';
+    return true;
   }
 
   finishRound(): void {

@@ -1,0 +1,15 @@
+---
+description: Aktiviert Feature-Request-Workflow (/feature-request) inkl. GitLab-Issue-Erstellung
+alwaysApply: true
+---
+
+# Feature-Request-Trigger
+
+**Nur** wenn die aktuelle Nutzer-Nachricht **`/feature-request`** enthält (Groß-/Kleinschreibung egal):
+
+1. **Skill laden:** `.cursor/skills/feature-request/SKILL.md` vollständig befolgen.
+2. **Feature-Kern** aus dem Rest der Nachricht ableiten (Titel-Vorschlag für `[Feature]` / `[Epic]`).
+3. **Meilenstein (optional):** aus der Nachricht lesen (`Meilenstein:`, `Milestone:`, `Version:`) oder nach Skill-Logik: einzelner offener → automatisch; keiner → ohne Milestone; mehrere ohne Wahl → **Plan-Modus** (Optionen + Bestätigung) **oder** eine Rückfrage, **dann erst** Issues anlegen.
+4. **GitLab:** strukturierte Issues anlegen, Labels + Milestone (falls geklärt), Eltern-Kind mit `[Parent] - #IID` — siehe Skill.
+
+**Ohne** den Trigger `/feature-request`: diese Regel nicht als „automatischen Feature-Request-Modus" interpretieren (normale Konversation / `gitlab-integration`-Regeln „erst fragen" bleiben default).

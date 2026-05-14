@@ -1,13 +1,41 @@
 import type { AssetManifest } from '../config/assetManifest';
 
 /**
- * Lädt später Texturen/Sounds aus dem Manifest.
- * v1: keine echten Assets — Renderer nutzt Platzhalter-Grafiken.
+ * Asset-Lookup-Schicht.
+ *
+ * Manifest-Lookup für Symbole und Sounds. Der Renderer kann vorhandene PNG-Pfade
+ * via `loadSymbolTexturesFromManifest` laden; fehlende oder kaputte URLs →
+ * prozeduraler Fallback (`proceduralSymbol.ts`). Sounds bleiben optional.
+ *
+ * **Server-Vertrag**: Symbol-IDs / Sound-IDs werden vom Server bzw. der
+ * `GameConfig` definiert; das Manifest mappt sie nur auf Pfade. Der Loader
+ * trifft keine Spielentscheidungen.
  */
 export class AssetLoader {
   constructor(private readonly manifest: AssetManifest) {}
 
   getManifest(): AssetManifest {
     return this.manifest;
+  }
+
+  /**
+   * Pfad für eine Symbol-ID — fällt auf `manifest.fallback.symbol` zurück,
+   * wenn die ID nicht im Manifest vorhanden ist.
+   */
+  getSymbolPath(symbolId: string): string | null {
+    const direct = this.manifest.symbols[symbolId];
+    if (direct) return direct;
+    return this.manifest.fallback?.symbol ?? null;
+  }
+
+  /**
+   * Pfad für eine Sound-ID — fällt auf `manifest.fallback.sound` zurück,
+   * wenn die ID nicht im Manifest vorhanden ist.
+   */
+  getSoundPath(soundId: string): string | null {
+    const direct = this.manifest.sounds[soundId];
+    if (direct) return direct;
+    const fb = this.manifest.fallback?.sound;
+    return fb ? fb : null;
   }
 }

@@ -1,0 +1,23 @@
+---
+description: Aktiviert expliziten Issue-Arbeitsmodus (/issue-work; optional GC-ISSUE) – Assignee, Dates, Time Tracking, Meilenstein
+alwaysApply: true
+---
+
+# Issue-Execution-Trigger
+
+**Nur wenn die aktuelle Nutzer-Nachricht eines dieser Trigger enthält** (Groß-/Kleinschreibung egal):
+
+- **`/issue-work`**
+- *(Projektkürzel, optional)* **`GC-ISSUE`**
+
+…dann gilt zusätzlich zum allgemeinen Pflichtprozess (`issue-execution-management.mdc`):
+
+1. **Skill lesen:** `.cursor/skills/issue-execution-management/SKILL.md` vollständig lesen und den Ablauf dort strikt einhalten.
+2. **Issue-Referenz klären:** aus der Nachricht ableiten (`#<IID>`, GitLab-Issue-URL, „Issue 12") — fehlt sie, den Nutzer nach IID oder Link fragen.
+3. **Meilenstein / Version klären:** falls in der Nachricht **`Milestone:`** oder **`Version:`** (oder Formulierungen wie „für **v0.2.0**", „Release **x.y**", „Meilenstein **…**") vorkommt, diesen Ziel-Meilenstein für alle Schritte zugrunde legen; sonst den im Issue bereits gesetzten Meilenstein prüfen bzw. mit dem Nutzer den passenden Meilenstein für das Release-Ziel abstimmen. Bei Bedarf `list_milestones` nutzen, um Titel und IDs zu finden.
+4. **GitLab:** über den GitLab MCP (`gitlab-integration` Skill) Assignee, **Milestone** (`milestone_id`), **Start Date**, **Due Date** und **Time Tracking** (spent time) für dieses Issue pflegen bzw. prüfen.
+5. **Abschluss:** erst wenn Assignee, Meilenstein (Release-Ziel), Dates und erfasste Arbeitszeit stimmen, das Issue als erledigt werten oder schließen (siehe Checkliste in `issue-execution-management.mdc`).
+
+**Hinweis:** Die Pflichtregeln zu Assignee, Dates, Time Tracking und Meilenstein gelten **auch ohne** diesen Trigger bei jeder Issue-Bearbeitung (`issue-execution-management.mdc`).
+
+**Ohne** einen der Trigger oben: diese Regel ignorieren (kein automatischer „expliziter Issue-Modus" über Slash/Kürzel).

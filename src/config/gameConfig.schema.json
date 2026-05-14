@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://gears-clash.local/schemas/gameConfig.json",
   "title": "GearsClashGameConfig",
+  "description": "Strukturierte, JSON-serialisierbare Konfiguration für das Gears-Clash-Slot-Game. Auszahlungen, Bonus-Ergebnisse und finale Gewinne sind serverseitig — diese Konfiguration steuert nur Darstellung, Symbol-Definition und Animations-Parameter.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,6 +19,10 @@
     "sound"
   ],
   "properties": {
+    "version": {
+      "description": "Optionaler Schema-Versions-Marker (frei wählbar, z. B. \"1.0\").",
+      "type": "string"
+    },
     "grid": {
       "type": "object",
       "additionalProperties": false,
@@ -29,6 +34,7 @@
     },
     "symbols": {
       "type": "array",
+      "minItems": 14,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -41,14 +47,38 @@
             "type": "string",
             "enum": ["gears_clash", "heist_run", "deadlock_mode"]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "kind": { "const": "bonus" } },
+              "required": ["kind"]
+            },
+            "then": {
+              "required": ["bonusId"]
+            }
+          },
+          {
+            "if": {
+              "properties": { "kind": { "not": { "const": "bonus" } } },
+              "required": ["kind"]
+            },
+            "then": {
+              "not": { "required": ["bonusId"] }
+            }
+          }
+        ]
       }
     },
     "symbolWeights": {
+      "description": "Map symbol-id → Gewicht (>= 0). Server kann die Werte ableiten; Client nutzt sie nur für Mock-Generierung.",
       "type": "object",
       "additionalProperties": { "type": "number", "minimum": 0 }
     },
-    "payoutTable": { "type": "object" },
+    "payoutTable": {
+      "description": "Auszahlungstabelle als Referenz / Anzeige. Finale Gewinne kommen vom Server.",
+      "type": "object"
+    },
     "bonusTriggers": {
       "type": "object",
       "additionalProperties": false,
@@ -56,7 +86,8 @@
       "properties": {
         "bonusSymbolIds": {
           "type": "array",
-          "items": { "type": "string" }
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
         }
       }
     },
@@ -88,7 +119,32 @@
         "turbo": { "type": "boolean" },
         "reelSequentialDurationMs": { "type": "integer", "minimum": 200 },
         "reelApproachExtraRows": { "type": "integer", "minimum": 0, "maximum": 20 },
-        "reelIdleScrollRowsPerSec": { "type": "number", "minimum": 0, "maximum": 40 }
+        "reelIdleScrollRowsPerSec": { "type": "number", "minimum": 0, "maximum": 40 },
+        "scatterAnticipationPendingReelSpeedMul": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 3
+        },
+        "scatterAnticipationIdleRampMs": {
+          "type": "number",
+          "minimum": 40,
+          "maximum": 3000
+        },
+        "scatterAnticipationSequentialStopStretch": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2.2
+        },
+        "scatterAnticipationTerminalSlowFraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.45
+        },
+        "scatterAnticipationTurboExtraStopMs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8000
+        }
       }
     },
     "assets": {
@@ -106,6 +162,89 @@
       "properties": {
         "enabled": { "type": "boolean" },
         "baseUrl": { "type": "string" }
+      }
+    },
+    "betLevels": {
+      "description": "Verfügbare Einsatzstufen für den Bet-Stepper.",
+      "type": "array",
+      "items": { "type": "number", "minimum": 1 },
+      "minItems": 1
+    },
+    "slotMath": {
+      "description": "Demo-/Referenz-Spielphysik für Paylines + Scatter-Schwelle. Der Mock-Adapter wertet damit Spins aus — Live-Server sollte eigene Mathematik setzen.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minMatchLength",
+        "referenceBet",
+        "scatterMinBonus",
+        "scatterBonusResolutionOrder",
+        "paylines",
+        "lineMultipliersBySymbolId"
+      ],
+      "properties": {
+        "minMatchLength": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 5
+        },
+        "referenceBet": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scatterMinBonus": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 8
+        },
+        "scatterBonusResolutionOrder": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["gears_clash", "heist_run", "deadlock_mode"]
+          }
+        },
+        "paylines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "rows"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "name": {
+                "type": "string",
+                "description": "Anzeigename der Gewinnlinie (z. B. 'Center Line', 'Gear Rotation Left')."
+              },
+              "type": {
+                "type": "string",
+                "enum": ["straight", "diagonal", "zigzag", "v", "industrial", "hero"],
+                "description": "Visuelle Kategorie für Info-Modal-Darstellung."
+              },
+              "rows": {
+                "type": "array",
+                "minItems": 5,
+                "maxItems": 10,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9
+                }
+              }
+            }
+          }
+        },
+        "lineMultipliersBySymbolId": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": { "type": "number", "minimum": 0 }
+          }
+        }
       }
     }
   }

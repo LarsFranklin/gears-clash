@@ -1,0 +1,15 @@
+---
+description: Aktiviert Bugfix-Request-Workflow (/bugfix-request) inkl. GitLab Bug-Issue(s)
+alwaysApply: true
+---
+
+# Bugfix-Request-Trigger
+
+**Nur** wenn die aktuelle Nutzer-Nachricht **`/bugfix-request`** enthält (Groß-/Kleinschreibung egal):
+
+1. **Skill laden:** `.cursor/skills/bugfix-request/SKILL.md` vollständig befolgen.
+2. **Bug-Kern** aus dem Rest der Nachricht ableiten (Kurztitel für `[Bug] - …`).
+3. **Meilenstein (optional):** wie im Skill — einzelner offener → automatisch; keiner → ohne Milestone; mehrere ohne Wahl → Plan-Modus oder Rückfrage, **dann erst** Issues anlegen.
+4. **GitLab:** Bug-Issue(s) anlegen, Labels + optional Milestone, ggf. Tasks mit `[Parent] - #IID`.
+
+**Ohne** `/bugfix-request`: kein automatischer Bugfix-Request-Modus; allgemeine `gitlab-integration`-Regeln („erst fragen") bleiben Standard.

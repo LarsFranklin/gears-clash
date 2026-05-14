@@ -1,0 +1,62 @@
+---
+description: Bonus-Payloads (gears_clash, heist_run, deadlock_mode) sind typisierte Server-Daten. Client visualisiert nur, entscheidet nichts.
+alwaysApply: true
+---
+
+# Bonus-Payload-Vertrag
+
+## Bonus-IDs (UNVERHANDELBAR)
+
+Genau drei Bonus-Modi. Snake-Case, identisch in API/Mock/Renderer/Schema/Doku:
+
+- **`gears_clash`** — Multiplier-Battle, Winner als Full-Reel-Wild
+- **`heist_run`** — Free Spins mit Sticky Wilds (optional Multiplier)
+- **`deadlock_mode`** — Phase 1 Collection, Phase 2 Overdrive
+
+Definiert in `BonusId` (`src/config/types.ts`). Schema-Enum (`gameConfig.schema.json`) muss synchron bleiben.
+
+## Typisierte Payloads (`BonusSessionPayload`)
+
+```ts
+type BonusSessionPayload =
+  | { type: 'gears_clash'; payload: GearsClashPayload }
+  | { type: 'heist_run'; payload: HeistRunPayload }
+  | { type: 'deadlock_mode'; payload: DeadlockModePayload };
+```
+
+- **`GearsClashPayload`**: `{ gearA: { multiplier }, gearB: { multiplier }, winnerReel?, winnerMultiplier? }`
+- **`HeistRunPayload`**: `{ freeSpinsAwarded, currentSpin?, stickyWilds?: { reel, row, multiplier? }[] }`
+- **`DeadlockModePayload`**: `{ phase: 'collection' | 'overdrive', lives?, collectedSymbols?, remainingSpins? }`
+
+## Pflicht
+
+- **Server liefert das Payload final.** Der Client visualisiert die Felder, ohne sie umzurechnen.
+- **Mock-Adapter** erzeugt strukturierte Beispieldaten (in `MockGameApiAdapter.mockGearsClashPayload` usw.) — **nur** für Demo / Renderer-Tests.
+- **Renderer** liest Felder defensiv: out-of-bounds-Positionen via `clampHighlights`/`sanitizeWinLines` filtern, Multiplier-Werte als Anzeige nutzen.
+- **`BonusOverlayController.show(bonusType: BonusId)`** ist auf den Union-Typ getypt — keine Strings, keine generischen Maps.
+
+## Verboten
+
+- Eigene Multiplier-Mathematik im Client (`x2 + x6 = x8` als Produktlogik).
+- Fake-Payloads in Hosts/IIFE-Beispielen — nur dokumentierte Strukturen.
+- `payload: Record<string, unknown>` für Bonus-Daten — die typisierten Interfaces sind Pflicht.
+- Eigene Bonus-IDs erfinden (`super_spin`, `mega_bonus`, …) — Drei sind festgelegt.
+
+## Pflicht bei neuem Bonus-Modus
+
+1. `BonusId`-Union erweitern (mit `dem-User-abgestimmten` snake_case-ID).
+2. Neues `*Payload`-Interface in `src/config/types.ts`.
+3. `BonusSessionPayload`-Union erweitern.
+4. `MockGameApiAdapter` mit realistischer Payload-Generierung.
+5. `Feature`-Klasse in `src/features/`.
+6. `BonusEngine.describeBonus`-Switch.
+7. `BonusOverlayController.TITLES` ergänzen.
+8. `gameConfig.schema.json` `enum` erweitern; Schema-Test grün.
+9. README-Bonus-Sektion ergänzen.
+10. Public API in `src/index.ts` exportieren.
+
+## Verwandte Rules / Skills
+
+- `client-no-final-outcomes.mdc`
+- `slot-game-architecture` Skill — Bonus-Schicht
+- `adapter-contract-stability.mdc`

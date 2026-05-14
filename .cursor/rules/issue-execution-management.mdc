@@ -1,0 +1,42 @@
+---
+description: Pflichtprozess bei Issue-Bearbeitung – Assignee, Dates, Time Tracking, Meilenstein/Version
+alwaysApply: true
+---
+
+# Issue-Bearbeitung: Pflichtprozess
+
+Bei jeder aktiven Bearbeitung eines Issues (Bug, Task, Feature, Review-Finding) sind folgende Punkte verpflichtend:
+
+1. **Assignee**
+   - Das Issue hat eine klar verantwortliche Person.
+   - Bei Übergabe wird der Assignee aktualisiert.
+
+2. **Dates**
+   - `Start Date` setzen, sobald die Arbeit beginnt.
+   - `Due Date` setzen oder aktualisieren, wenn sich der Zieltermin ändert.
+
+3. **Time Tracking**
+   - Gearbeitete Zeit laufend erfassen.
+   - Vor Abschluss sicherstellen, dass die reale Arbeitszeit eingetragen ist.
+
+4. **Meilenstein (Version / Release-Ziel)**
+   - In GitLab entspricht die **Version** dem **Milestone** (z. B. `v0.2.0`).
+   - Jedes Issue einem sinnvollen Meilenstein zuordnen — siehe `gitlab-conventions.mdc`.
+   - Arbeitet die Session zielgerichtet für einen bestimmten Meilenstein, müssen alle bearbeiteten Issues diesen Meilenstein tragen (setzen oder bei Abweichung bewusst umziehen).
+   - Ist der Ziel-Meilenstein unklar, vor dem Zuweisen beim Nutzer nachfragen.
+
+## Abschluss-Check (Pflicht)
+
+Vor "Issue ist erledigt" immer prüfen:
+
+- [ ] Assignee korrekt gesetzt
+- [ ] Start Date gesetzt
+- [ ] Due Date gesetzt oder bewusst aktualisiert
+- [ ] Arbeitszeit im Time Tracking erfasst
+- [ ] Meilenstein passt zum Release-Ziel (bzw. bewusst gesetzt/verschoben)
+
+Wenn eine Information fehlt, vor Abschluss nachfragen oder entsprechend nachpflegen.
+
+## Expliziter Befehl (optional)
+
+Zum bewussten Start des Issue-Arbeitsmodus: **`/issue-work`** (mit Issue-Referenz und optional **`Milestone:`** / **`Version:`**) — Details in `issue-execution-trigger.mdc`.
