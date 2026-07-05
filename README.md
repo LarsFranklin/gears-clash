@@ -33,7 +33,10 @@ import {
   HttpGameApiAdapter,
   defaultGameConfig,
   defaultAssetManifest,
+  defaultSlotMath,
+  mergeGameConfig,
   resolveManifestPaths,
+  evaluateDemoBaseSpin,
   NetworkError,
   InvalidResponseError,
   InsufficientBalanceError,
@@ -41,7 +44,7 @@ import {
 import 'gears-clash-game/style.css';
 ```
 
-Vollständige Exportliste siehe `src/index.ts`. Typdefinitionen: `package.json` → `"types": "./dist/index.d.ts"`.
+Vollständige Exportliste siehe `src/index.ts`. Typdefinitionen: `package.json` → `"types": "./dist/index.d.ts"`. Lizenz: [`LICENSE.md`](LICENSE.md).
 
 ## Builds in `dist/`
 
@@ -165,11 +168,11 @@ Response (Basisspin, kein Bonus):
 {
   "spinId": "550e8400-e29b-41d4-a716-446655440000",
   "reelStops": [
-    ["bolt", "nut", "gear", "wild_gear", "bonus_gears_clash"],
-    ["coil", "piston", "wrench", "rivet", "plate"],
-    ["cable", "valve", "bolt", "nut", "gear"],
-    ["wild_gear", "coil", "piston", "wrench", "rivet"],
-    ["plate", "cable", "valve", "bolt", "nut"]
+    ["bolt", "nut", "fuse", "wild_gear", "bonus_gears_clash"],
+    ["cable", "valve", "steam_piston", "reactor_pipe", "overdrive_core"],
+    ["quantum_chamber", "gears_vs", "bolt", "nut", "fuse"],
+    ["wild_gear", "cable", "valve", "steam_piston", "fuel_canister"],
+    ["reactor_pipe", "overdrive_core", "quantum_chamber", "bolt", "nut"]
   ],
   "winAmount": 250,
   "balanceAfter": 9850,

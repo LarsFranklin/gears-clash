@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import type { HeistRunStickyWild } from '../config/types';
 import type { GcFxQuality } from '../util/layoutMode';
 import { ROW_GAP } from './ReelColumn';
 
@@ -42,6 +43,7 @@ export class EffectsLayer {
   private speedLinesG = new Graphics();
   private scatterGlowG = new Graphics();
   private flashG = new Graphics();
+  private bonusMarksG = new Graphics();
   private particlesG = new Graphics();
 
   private speedLines: Map<number, SpeedLine[]> = new Map();
@@ -52,6 +54,12 @@ export class EffectsLayer {
 
   private scatterPhaseMs = 0;
   private scatterSparkAccMs = 0;
+
+  /** Full-Reel-Wild nach Gears-Clash-Sieger (nur Anzeige). */
+  private fullReelWild: { reel: number; multiplier?: number } | null = null;
+  /** Sticky-Wild-Markierungen während Heist Run. */
+  private stickyWilds: HeistRunStickyWild[] = [];
+  private bonusPulseMs = 0;
 
   private particleCap = 80;
   private speedLineCap = 4;
@@ -67,7 +75,13 @@ export class EffectsLayer {
   constructor() {
     this.view.eventMode = 'none';
     this.view.zIndex = 15;
-    this.view.addChild(this.speedLinesG, this.scatterGlowG, this.flashG, this.particlesG);
+    this.view.addChild(
+      this.speedLinesG,
+      this.scatterGlowG,
+      this.flashG,
+      this.bonusMarksG,
+      this.particlesG,
+    );
 
     if (typeof window !== 'undefined' && window.matchMedia) {
       this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -166,10 +180,37 @@ export class EffectsLayer {
     });
   }
 
+  /** Gears Clash: komplette Walze als Wild markieren (Server liefert Index + Multiplier). */
+  setFullReelWild(reel: number, multiplier?: number): void {
+    if (reel < 0 || reel >= this.reelCount) return;
+    this.fullReelWild = { reel, ...(multiplier !== undefined ? { multiplier } : {}) };
+    this.triggerReelFlash(reel);
+  }
+
+  clearFullReelWild(): void {
+    this.fullReelWild = null;
+  }
+
+  /** Heist Run: Sticky-Wild-Positionen anzeigen. */
+  setStickyWilds(positions: readonly HeistRunStickyWild[]): void {
+    this.stickyWilds = positions.map((p) => ({ ...p }));
+  }
+
+  clearStickyWilds(): void {
+    this.stickyWilds = [];
+  }
+
+  clearBonusMarks(): void {
+    this.fullReelWild = null;
+    this.stickyWilds = [];
+    this.bonusMarksG.clear();
+  }
+
   paint(dtMs: number): void {
     this.paintSpeedLines(dtMs);
     this.paintScatterAnticipation(dtMs);
     this.paintFlashes(dtMs);
+    this.paintBonusMarks(dtMs);
     this.paintParticles(dtMs);
   }
 
@@ -322,6 +363,56 @@ export class EffectsLayer {
     }
   }
 
+  private paintBonusMarks(dtMs: number): void {
+    const g = this.bonusMarksG;
+    g.clear();
+    if (!this.fullReelWild && this.stickyWilds.length === 0) return;
+
+    this.bonusPulseMs += dtMs;
+    const pulse = this.reducedMotion
+      ? 1
+      : Math.sin(this.bonusPulseMs * 0.005) * 0.35 + 0.75;
+    const pitch = this.cellSize + ROW_GAP;
+
+    if (this.fullReelWild) {
+      const { reel, multiplier } = this.fullReelWild;
+      if (reel >= 0 && reel < this.reelCount) {
+        const reelX = reel * (this.cellSize + this.gap);
+        g.roundRect(reelX - 3, -4, this.cellSize + 6, this.gridH + 8, 8);
+        g.fill({ color: 0xffa020, alpha: 0.12 * pulse });
+        g.roundRect(reelX, 0, this.cellSize, this.gridH, 6);
+        g.stroke({ width: 3, color: 0xffd040, alpha: 0.85 * pulse });
+
+        if (multiplier !== undefined) {
+          const badgeW = Math.min(this.cellSize * 0.85, 52);
+          const badgeH = 22;
+          const bx = reelX + (this.cellSize - badgeW) / 2;
+          g.roundRect(bx, -badgeH - 4, badgeW, badgeH, 6);
+          g.fill({ color: 0x3a2008, alpha: 0.92 });
+          g.stroke({ width: 1.5, color: 0xffe080, alpha: 0.9 });
+        }
+      }
+    }
+
+    for (const sw of this.stickyWilds) {
+      if (sw.reel < 0 || sw.reel >= this.reelCount) continue;
+      const reelX = sw.reel * (this.cellSize + this.gap);
+      const row = Math.max(0, Math.min(sw.row, Math.floor(this.gridH / pitch) - 1));
+      const cellY = row * pitch;
+      g.roundRect(reelX + 2, cellY + 2, this.cellSize - 4, pitch - 4, 5);
+      g.stroke({ width: 2.5, color: 0xffd860, alpha: 0.9 * pulse });
+      g.roundRect(reelX + 5, cellY + 5, this.cellSize - 10, pitch - 10, 4);
+      g.fill({ color: 0xffa020, alpha: 0.08 * pulse });
+
+      if (sw.multiplier !== undefined) {
+        const mw = 28;
+        const mh = 16;
+        g.roundRect(reelX + this.cellSize - mw - 4, cellY + 4, mw, mh, 4);
+        g.fill({ color: 0x2a1808, alpha: 0.9 });
+      }
+    }
+  }
+
   private paintParticles(dtMs: number): void {
     const g = this.particlesG;
     g.clear();
@@ -367,9 +458,13 @@ export class EffectsLayer {
     this.scatterAnticipationReels.clear();
     this.scatterPhaseMs = 0;
     this.scatterSparkAccMs = 0;
+    this.bonusPulseMs = 0;
+    this.fullReelWild = null;
+    this.stickyWilds = [];
     this.speedLinesG.clear();
     this.scatterGlowG.clear();
     this.flashG.clear();
+    this.bonusMarksG.clear();
     this.particlesG.clear();
   }
 
@@ -379,6 +474,7 @@ export class EffectsLayer {
     this.speedLinesG.destroy();
     this.scatterGlowG.destroy();
     this.flashG.destroy();
+    this.bonusMarksG.destroy();
     this.particlesG.destroy();
   }
 }

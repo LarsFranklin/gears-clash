@@ -47,7 +47,7 @@ Beim Hinzufügen einer neuen Datei in `dist/`:
 | **ESM** | Vite/Webpack/esbuild-Hosts, React/Inertia, neuer Node | `import { GearsClashGame } from 'gears-clash-game'` |
 | **IIFE** | Klassische Blade-/HTML-Hosts ohne Bundler | `<script src=".../gears-clash.iife.js">` → `window.GearsClash.GearsClashGame` |
 
-**Globalname:** `GearsClash` (in `vite.config.ts` als `lib.name`). Beide Bundles enthalten identische Public-API; sie wird in `src/index.ts` für IIFE als `default`-Export am `GearsClash`-Objekt gespiegelt.
+**Globalname:** `GearsClash` (in `vite.config.ts` als `lib.name`). Beide Bundles exportieren dieselbe Public API; im IIFE-Bundle greifen Hosts über **named exports** auf dem globalen Objekt zu (`GearsClash.GearsClashGame`, `GearsClash.MockGameApiAdapter`, …). Vite setzt `rollupOptions.output.exports: 'named'` — kein `default`-Wrapper.
 
 ## JSON-Schema
 

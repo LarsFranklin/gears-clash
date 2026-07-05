@@ -98,7 +98,7 @@ Beim Hinzufügen neuer Public-API-Symbole:
 
 1. In `src/index.ts` exportieren.
 2. README-Beispiele aktualisieren.
-3. IIFE-Globalobjekt `GearsClash` erweitern (am Ende von `src/index.ts`).
+3. IIFE: named exports landen unter globalem `GearsClash` (siehe `vite.config.ts` → `exports: 'named'`).
 4. Falls ein neuer Konfig-Typ entsteht: Schema (`gameConfig.schema.json`) und Filament-Hinweis im README pflegen.
 5. Tests in `src/__tests__/` ergänzen.
 

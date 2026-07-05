@@ -13,6 +13,7 @@ import type {
   GameEventName,
   HostAdapter,
   SpinResult,
+  BonusId,
 } from './config/types';
 import type { GameApiAdapter } from './adapters/GameApiAdapter';
 import { BonusEngine } from './core/BonusEngine';
@@ -28,6 +29,8 @@ import {
 import { BonusOverlayController } from './ui/BonusOverlayController';
 import { ControlsBar } from './ui/ControlsBar';
 import { DeadlockModeSessionController } from './ui/DeadlockModeSessionController';
+import { GearsClashSessionController } from './ui/GearsClashSessionController';
+import { HeistRunSessionController } from './ui/HeistRunSessionController';
 import { ButtonController } from './ui/ButtonController';
 import { DesktopChromeController } from './ui/DesktopChromeController';
 import { HudController } from './ui/HudController';
@@ -88,6 +91,8 @@ export class GearsClashGame {
   private bonusOverlay: BonusOverlayController | null = null;
   private controlsBar: ControlsBar | null = null;
   private deadlockSessionUi: DeadlockModeSessionController | null = null;
+  private gearsClashSessionUi: GearsClashSessionController | null = null;
+  private heistRunSessionUi: HeistRunSessionController | null = null;
   private desktopChrome: DesktopChromeController | null = null;
   private infoModal: InfoModalController | null = null;
   private layoutObserver: ResizeObserver | null = null;
@@ -153,6 +158,15 @@ export class GearsClashGame {
     void this.runSpin();
   }
 
+  /**
+   * Demo: nächster Spin erzwingt einen Bonus-Typ (Mock liest `meta.forceBonus`).
+   * Zufälliges Raster — anders als feste Preset-Layouts in `requestVisualTestSpin`.
+   */
+  requestForcedBonusSpin(bonusId: BonusId): void {
+    this.spinMetaExtra = { forceBonus: bonusId };
+    void this.runSpin();
+  }
+
   async mount(): Promise<void> {
     if (this.mounted) return;
     this.mounted = true;
@@ -189,6 +203,14 @@ export class GearsClashGame {
         },
       });
       this.deadlockSessionUi.mount(frameInner);
+      this.gearsClashSessionUi = new GearsClashSessionController();
+      this.gearsClashSessionUi.mount(frameInner);
+      this.heistRunSessionUi = new HeistRunSessionController(this.config, {
+        onPayloadRendered: (payload) => {
+          this.renderer?.setStickyWilds(payload.stickyWilds ?? []);
+        },
+      });
+      this.heistRunSessionUi.mount(frameInner);
       frame.appendChild(frameInner);
       gameCenter.appendChild(frame);
 
@@ -286,6 +308,8 @@ export class GearsClashGame {
       this.hud?.destroy();
       this.bonusOverlay?.destroy();
       this.deadlockSessionUi?.destroy();
+      this.gearsClashSessionUi?.destroy();
+      this.heistRunSessionUi?.destroy();
       this.infoModal?.destroy();
       this.renderer?.destroy();
       this.desktopChrome?.destroy();
@@ -301,6 +325,8 @@ export class GearsClashGame {
     this.hud = null;
     this.bonusOverlay = null;
     this.deadlockSessionUi = null;
+    this.gearsClashSessionUi = null;
+    this.heistRunSessionUi = null;
     this.renderer = null;
     this.rootEl = null;
     this.canvasWrap = null;
@@ -327,6 +353,8 @@ export class GearsClashGame {
     this.hud?.destroy();
     this.bonusOverlay?.destroy();
     this.deadlockSessionUi?.destroy();
+    this.gearsClashSessionUi?.destroy();
+    this.heistRunSessionUi?.destroy();
     this.infoModal?.destroy();
     this.renderer?.destroy();
     this.desktopChrome?.destroy();
@@ -339,6 +367,8 @@ export class GearsClashGame {
     this.hud = null;
     this.bonusOverlay = null;
     this.deadlockSessionUi = null;
+    this.gearsClashSessionUi = null;
+    this.heistRunSessionUi = null;
     this.renderer = null;
     this.rootEl = null;
     this.canvasWrap = null;
@@ -377,12 +407,6 @@ export class GearsClashGame {
       throw new Error('reelStops passen nicht zur konfigurierten Grid-Größe.');
     }
     await this.renderer?.playSpinAnimation(result.reelStops, hooks);
-    
-    // Gears Clash Animation wenn vorhanden
-    if (result.bonus?.type === 'gears_clash') {
-      this.options.sound?.play('gears_clash_intro');
-      await this.renderer?.playGearsClashAnimation(result.bonus.payload, hooks);
-    }
     
     this.slotEngine.enterResolving();
     await this.renderer?.showWinFeedback(
@@ -432,6 +456,40 @@ export class GearsClashGame {
     this.emitter.emit('balance:update', result.balanceAfter);
     host?.onBalanceUpdate?.(result.balanceAfter);
     this.emitter.emit('spin:end', result);
+  }
+
+  private async runHeistContinuationRound(
+    hooks: PixiSlotRendererHooks,
+  ): Promise<SpinResult> {
+    const host = this.options.hostAdapter;
+    if (!this.slotEngine.canSpin(host?.disabled)) {
+      throw new Error('Heist-Fortsetzung: Slot nicht idle.');
+    }
+    if (!this.slotEngine.beginSpin()) {
+      throw new Error('Heist-Fortsetzung: Spin blockiert.');
+    }
+    this.emitter.emit('spin:start');
+    this.options.sound?.play('spin');
+    this.hud?.setWin(0);
+    this.button?.setDisabled(true);
+
+    const hostMeta = host?.userMeta;
+    const meta =
+      hostMeta && typeof hostMeta === 'object'
+        ? { ...hostMeta, heistSession: true }
+        : { heistSession: true };
+
+    const result = await this.options.apiAdapter.spin({
+      bet: this.bet,
+      currency: host?.currency ?? 'COINS',
+      mode: 'heist_run',
+      meta,
+    });
+
+    await this.presentSpinVisuals(result, hooks);
+    this.applySpinHudAndEmit(result);
+    this.button?.setDisabled(!!host?.disabled);
+    return result;
   }
 
   private async runDeadlockContinuationRound(
@@ -509,10 +567,6 @@ export class GearsClashGame {
 
         this.emitter.emit('bonus:end', lastPayload ?? result.bonus);
       } else if (result.bonus?.type === 'gears_clash') {
-        // Gears Clash ist KEIN Free-Spin-Bonus — nur Single-Spin Battle.
-        // Animation läuft schon in presentSpinVisuals(), kein Overlay/EnterBonus.
-        this.applySpinHudAndEmit(result);
-      } else if (result.bonus) {
         this.slotEngine.enterBonus();
         this.emitter.emit('bonus:start', result.bonus);
         this.options.sound?.play('bonus_intro');
@@ -520,9 +574,42 @@ export class GearsClashGame {
         this.renderer?.setFrozen(true);
         await this.bonusOverlay?.show(result.bonus.type);
         this.renderer?.setFrozen(false);
-        this.emitter.emit('bonus:end', result.bonus);
+        this.slotEngine.finishRound();
+        this.pushHudFromResult(result);
 
-        this.applySpinHudAndEmit(result);
+        await (this.gearsClashSessionUi?.runSession(result.bonus.payload, {
+          onBattle: async (payload) => {
+            this.options.sound?.play('gears_clash_intro');
+            await this.renderer?.playGearsClashAnimationAsync(payload, hooks);
+            const reel = payload.winnerReel ?? 0;
+            const mul =
+              payload.winnerMultiplier ??
+              Math.max(payload.gearA.multiplier, payload.gearB.multiplier);
+            this.renderer?.setFullReelWild(reel, mul);
+          },
+        }) ?? Promise.resolve());
+
+        this.renderer?.clearFullReelWild();
+        this.emitter.emit('bonus:end', result.bonus);
+      } else if (result.bonus?.type === 'heist_run') {
+        this.slotEngine.enterBonus();
+        this.emitter.emit('bonus:start', result.bonus);
+        this.options.sound?.play('bonus_intro');
+        await this.renderer?.flashBonusSymbolReveal(result.reelStops);
+        this.renderer?.setFrozen(true);
+        await this.bonusOverlay?.show(result.bonus.type);
+        this.renderer?.setFrozen(false);
+        this.renderer?.setStickyWilds(result.bonus.payload.stickyWilds ?? []);
+        this.slotEngine.finishRound();
+        this.pushHudFromResult(result);
+
+        const lastPayload = await (this.heistRunSessionUi?.runSession(
+          result,
+          () => this.runHeistContinuationRound(hooks),
+        ) ?? Promise.resolve(undefined));
+
+        this.renderer?.clearStickyWilds();
+        this.emitter.emit('bonus:end', lastPayload ?? result.bonus);
       } else {
         this.applySpinHudAndEmit(result);
       }

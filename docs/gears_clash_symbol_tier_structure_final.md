@@ -17,14 +17,17 @@ Die Struktur wurde bewusst reduziert, damit:
 
 # Finale Hauptregel
 
-## Nur 10 normale Reel-Symbole
+## Nur 10 normale Pay-Symbole (+ optionales Feature-Symbol)
 
-Gears Clash nutzt:
+Gears Clash nutzt in `defaultGameConfig`:
 
-- 10 normale Symbole
-- plus separate SPECIAL-Symbole
+- **10 normale Pay-Symbole** (`bolt` … `quantum_chamber`)
+- **1 Feature-Symbol** `gears_vs` (VS-Gears, Feature-Trigger — kein klassisches Pay-Symbol)
+- plus separate **SPECIALS** (Wild, Bonus)
 
-SPECIALS zählen NICHT zu den normalen Reel-Symbolen.
+SPECIALS zählen NICHT zu den normalen Pay-Symbolen.
+
+> **Code-Referenz:** Symbol-IDs und Gewichte siehe `src/config/defaultGameConfig.ts` und `src/config/defaultSlotMath.ts`.
 
 ---
 
@@ -330,7 +333,7 @@ Gears Clash soll NICHT wirken wie:
 - ein typischer Casino Slot
 - ein Karten-Slot
 - ein Edelstein-Slot
-- ein generischer Pragmatic-Klon
+- ein generischer High-Volatility-Slot-Klon
 
 Sondern wie:
 

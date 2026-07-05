@@ -26,19 +26,21 @@ export async function loadSymbolTexturesFromManifest(
   const map = new Map<string, Texture>();
   const sourceUrls: string[] = [];
 
-  for (const id of symbolIds) {
-    const url = loader.getSymbolPath(id);
-    if (!url) continue;
-    try {
-      const res = await Assets.load(url);
-      const tex = asTexture(res);
-      if (!tex) continue;
-      map.set(id, tex);
-      sourceUrls.push(url);
-    } catch {
-      /* 404 / CORS — Fallback bleibt prozedural */
-    }
-  }
+  await Promise.all(
+    symbolIds.map(async (id) => {
+      const url = loader.getSymbolPath(id);
+      if (!url) return;
+      try {
+        const res = await Assets.load(url);
+        const tex = asTexture(res);
+        if (!tex) return;
+        map.set(id, tex);
+        sourceUrls.push(url);
+      } catch {
+        /* 404 / CORS — Fallback bleibt prozedural */
+      }
+    }),
+  );
 
   return { map, sourceUrls };
 }

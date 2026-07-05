@@ -586,7 +586,7 @@ Weitere Bilder/Videos sammeln für:
 # Ende
 
 
-# Erweiterte Analyse moderner Slot-Bonusspiele (Wanted Dead or a Wild Inspiration)
+# Erweiterte Analyse moderner Slot-Bonusspiele (Referenz: High-Volatility-Dual-Gear-Mechanik)
 
 ## Ziel
 Die neuen Referenz-Screenshots zeigen wichtige moderne Slot-Mechaniken und UX-Muster, die Gears Clash übernehmen sollte. Der Fokus liegt nicht nur auf mathematischen Features, sondern vor allem auf Spannung, Eskalation, Präsentation und Spielgefühl.

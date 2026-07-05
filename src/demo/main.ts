@@ -4,6 +4,7 @@ import { defaultGameConfig } from '../config/defaultGameConfig';
 import { defaultAssetManifest } from '../config/assetManifest';
 import { mountDemoVisualTestBar } from './demoVisualTestBar';
 import { mountDemoSimulationPanel } from './simulationPanel';
+import { mountDemoSessionPanel } from './demoSessionPanel';
 import '../styles/host-ui.css';
 
 // Wähle Adapter basierend auf URL-Parameter
@@ -50,15 +51,20 @@ await game.mount();
 
 // Demo-UI nur im Mock-Modus
 if (!useHttpAdapter) {
+  const sessionHost = document.getElementById('gc-demo-session-host');
   const vistestHost = document.getElementById('gc-demo-vistest-host');
   const simHost = document.getElementById('gc-demo-sim-host');
-  
-  if (vistestHost) {
-    const testBar = mountDemoVisualTestBar(vistestHost, game);
+
+  if (sessionHost) {
+    mountDemoSessionPanel(sessionHost, game);
   }
-  
+
+  if (vistestHost) {
+    mountDemoVisualTestBar(vistestHost, game);
+  }
+
   if (simHost) {
-    const simPanel = mountDemoSimulationPanel(simHost, { getConfig: () => defaultGameConfig });
+    mountDemoSimulationPanel(simHost, { getConfig: () => defaultGameConfig });
   }
 }
 

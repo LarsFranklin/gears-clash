@@ -65,7 +65,7 @@ Empfohlene Bereich-Labels für Gears Clash. Farben sind Vorschläge — beim Anl
 | `module::build` | Vite/TS-Build, `package.json`, `scripts/`, `tsconfig*.json` |
 | `module::demo` | `index.html`, `src/demo/` — lokale Vorschau |
 | `module::ci` | `.gitlab-ci.yml`, Pipelines, Releases |
-| `module::docs` | README, `.gitlab/`, `.cursor/skills/` |
+| `module::docs` | README, REVIEW.md, LICENSE.md, `.gitlab/`, `.cursor/rules/`, `.cursor/skills/`, Design-Docs (`docs/`, `*.md`) |
 
 #### `feature::*` — fachliche Bereiche
 

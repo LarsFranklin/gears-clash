@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getWinTier } from '../renderer/BigWinLayer';
+import { getWinTier } from '../util/winTier';
 
 describe('getWinTier', () => {
   it('returns "small" for wins less than 5x bet', () => {

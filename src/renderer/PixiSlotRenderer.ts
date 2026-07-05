@@ -126,6 +126,7 @@ export class PixiSlotRenderer {
       autoDensity: true,
     });
     this.app = app;
+    app.canvas.classList.add('gc-pixi-canvas');
     parent.replaceChildren(app.canvas);
 
     const root = new Container();
@@ -913,14 +914,39 @@ export class PixiSlotRenderer {
     payload: GearsClashPayload,
     hooks?: PixiSlotRendererHooks,
   ): void {
-    if (!this.gearsClashAnim || this.destroyed) return;
+    void this.playGearsClashAnimationAsync(payload, hooks);
+  }
+
+  playGearsClashAnimationAsync(
+    payload: GearsClashPayload,
+    hooks?: PixiSlotRendererHooks,
+  ): Promise<void> {
+    if (!this.gearsClashAnim || this.destroyed) return Promise.resolve();
     const targetReel = payload.winnerReel ?? 0;
-    this.gearsClashAnim.start(payload, targetReel, {
-      onComplete: () => {
-        // Animation abgeschlossen
-      },
-      onSound: hooks?.onSound,
+    return new Promise((resolve) => {
+      this.gearsClashAnim!.start(payload, targetReel, {
+        onComplete: () => resolve(),
+        onSound: hooks?.onSound,
+      });
     });
+  }
+
+  setFullReelWild(reel: number, multiplier?: number): void {
+    this.effectsLayer?.setFullReelWild(reel, multiplier);
+  }
+
+  clearFullReelWild(): void {
+    this.effectsLayer?.clearFullReelWild();
+  }
+
+  setStickyWilds(
+    positions: readonly { reel: number; row: number; multiplier?: number }[],
+  ): void {
+    this.effectsLayer?.setStickyWilds(positions);
+  }
+
+  clearStickyWilds(): void {
+    this.effectsLayer?.clearStickyWilds();
   }
 
   private tickVisuals(): void {

@@ -244,6 +244,96 @@
   font-weight: 600;
 }
 
+/* --- Demo Session (Force-Bonus + Statistik) --- */
+.gc-demo-session {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 140, 180, 0.25);
+  background: rgba(12, 14, 22, 0.72);
+}
+
+.gc-demo-session__title {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e8ecf8;
+}
+
+.gc-demo-session__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  gap: 0.35rem 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.gc-demo-session__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.gc-demo-session__stat-k {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(180, 190, 210, 0.75);
+}
+
+.gc-demo-session__stat-v {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f0f4ff;
+}
+
+.gc-demo-session__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: flex-end;
+}
+
+.gc-demo-session__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+  color: rgba(200, 210, 230, 0.85);
+  min-width: 9rem;
+}
+
+.gc-demo-session__select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(120, 140, 180, 0.35);
+  background: rgba(8, 10, 18, 0.9);
+  color: #eef2ff;
+}
+
+.gc-demo-session__button {
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(100, 140, 220, 0.45);
+  background: rgba(24, 36, 72, 0.95);
+  color: #e8eeff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gc-demo-session__button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.gc-demo-session__button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gc-demo-session__button--ghost {
+  border-color: rgba(140, 150, 170, 0.35);
+  background: transparent;
+  font-weight: 500;
+}
+
 /* --- Deadlock Mode Session (im Frame) --- */
 .gc-deadlock-session {
   position: absolute;
@@ -378,6 +468,262 @@
 .gc-deadlock-session__action:hover:not(:disabled) {
   border-color: #ffb8e8;
   filter: brightness(1.06);
+}
+
+/* --- Gears Clash Session (im Frame) --- */
+.gc-gears-clash-session {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.5rem, 2vw, 1rem);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+
+.gc-gears-clash-session--visible {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+}
+
+.gc-gears-clash-session__panel {
+  width: 100%;
+  max-width: 24rem;
+  padding: 1rem 1.1rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(240, 160, 60, 0.45);
+  background: linear-gradient(
+    165deg,
+    rgba(48, 28, 8, 0.97) 0%,
+    rgba(28, 16, 6, 0.98) 100%
+  );
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+.gc-gears-clash-session__head {
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.gc-gears-clash-session__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffe8c0;
+}
+
+.gc-gears-clash-session__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(255, 220, 160, 0.75);
+}
+
+.gc-gears-clash-session__arena {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.gc-gears-clash-session__gear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 200, 100, 0.25);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.gc-gears-clash-session__gear--a {
+  border-color: rgba(231, 76, 60, 0.45);
+}
+
+.gc-gears-clash-session__gear--b {
+  border-color: rgba(52, 152, 219, 0.45);
+}
+
+.gc-gears-clash-session__gear-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 240, 210, 0.65);
+}
+
+.gc-gears-clash-session__gear-mul {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff8e8;
+}
+
+.gc-gears-clash-session__vs {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #ffb040;
+}
+
+.gc-gears-clash-session--battle .gc-gears-clash-session__arena {
+  animation: gc-gears-clash-shake 0.35s ease-in-out infinite;
+}
+
+@keyframes gc-gears-clash-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+.gc-gears-clash-session__status {
+  margin: 0 0 0.5rem;
+  text-align: center;
+  font-size: 0.88rem;
+  color: rgba(255, 230, 190, 0.85);
+}
+
+.gc-gears-clash-session__winner {
+  margin: 0 0 0.65rem;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffd860;
+}
+
+.gc-gears-clash-session__action {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(255, 200, 80, 0.45);
+  border-radius: 8px;
+  background: rgba(80, 48, 12, 0.9);
+  color: #fff4dc;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gc-gears-clash-session__action:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* --- Heist Run Session (im Frame) --- */
+.gc-heist-run-session {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.5rem, 2vw, 1rem);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+
+.gc-heist-run-session--visible {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+}
+
+.gc-heist-run-session__panel {
+  width: 100%;
+  max-width: 26rem;
+  max-height: min(92%, 28rem);
+  overflow: auto;
+  padding: 1rem 1.1rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(90, 160, 120, 0.45);
+  background: linear-gradient(
+    165deg,
+    rgba(12, 32, 24, 0.97) 0%,
+    rgba(8, 20, 16, 0.98) 100%
+  );
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+.gc-heist-run-session__head {
+  margin-bottom: 0.65rem;
+}
+
+.gc-heist-run-session__title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #c8f0dc;
+}
+
+.gc-heist-run-session__counter {
+  margin: 0.25rem 0 0;
+  font-size: 0.88rem;
+  color: rgba(180, 230, 200, 0.85);
+}
+
+.gc-heist-run-session__stickies-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(180, 220, 190, 0.7);
+}
+
+.gc-heist-run-session__list {
+  margin: 0 0 0.65rem;
+  padding: 0;
+  list-style: none;
+}
+
+.gc-heist-run-session__list-item,
+.gc-heist-run-session__list-empty {
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.25rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.gc-heist-run-session__list-item {
+  background: rgba(255, 216, 96, 0.08);
+  border: 1px solid rgba(255, 216, 96, 0.22);
+  color: #ffe8b0;
+}
+
+.gc-heist-run-session__list-empty {
+  color: rgba(180, 210, 190, 0.65);
+  font-style: italic;
+}
+
+.gc-heist-run-session__hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  color: rgba(180, 220, 190, 0.8);
+}
+
+.gc-heist-run-session__action {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(90, 180, 120, 0.45);
+  border-radius: 8px;
+  background: rgba(12, 48, 32, 0.95);
+  color: #d8f8e8;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gc-heist-run-session__action:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
 /* --- Slot-Root (im Host oder Demo) --- */
@@ -572,7 +918,7 @@
   box-shadow: none;
 }
 
-.gc-canvas-wrap canvas {
+.gc-pixi-canvas {
   display: block;
   width: 100%;
   height: auto;

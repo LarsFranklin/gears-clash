@@ -1,6 +1,8 @@
 import { Container, Graphics, Text } from 'pixi.js';
+import type { WinTier } from '../util/winTier';
 
-export type WinTier = 'small' | 'medium' | 'big' | 'mega';
+export type { WinTier } from '../util/winTier';
+export { getWinTier } from '../util/winTier';
 
 const MAX_COINS = 50;
 
@@ -342,13 +344,4 @@ function easeOutQuart(t: number): number {
 
 function formatNumber(n: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
-}
-
-export function getWinTier(winAmount: number, betAmount: number): WinTier {
-  if (betAmount <= 0) return 'small';
-  const ratio = winAmount / betAmount;
-  if (ratio >= 50) return 'mega';
-  if (ratio >= 15) return 'big';
-  if (ratio >= 5) return 'medium';
-  return 'small';
 }

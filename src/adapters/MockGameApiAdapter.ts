@@ -45,6 +45,11 @@ export class MockGameApiAdapter implements GameApiAdapter {
   /** Demo: Fortsetzungsspins nach Deadlock-Trigger (siehe `MOCK_DEADLOCK_DEMO_SEQUENCE`). */
   private deadlockSessionActive = false;
   private deadlockSessionStep = 0;
+  /** Demo: Heist-Run Free-Spin-Kette. */
+  private heistSessionActive = false;
+  private heistSessionAwarded = 0;
+  private heistSessionCurrent = 0;
+  private heistSessionStickyWilds: HeistRunStickyWild[] = [];
 
   constructor(private readonly options: MockGameApiAdapterOptions = {}) {
     this.balance = options.initialBalance ?? 10_000;
@@ -66,13 +71,20 @@ export class MockGameApiAdapter implements GameApiAdapter {
     const mode = request.mode ?? 'base';
     const isDeadlockContinue =
       mode === 'deadlock_mode' || request.meta?.deadlockSession === true;
+    const isHeistContinue =
+      mode === 'heist_run' || request.meta?.heistSession === true;
 
-    if (mode === 'base' && !isDeadlockContinue) {
+    if (mode === 'base' && !isDeadlockContinue && !isHeistContinue) {
       this.deadlockSessionActive = false;
+      this.heistSessionActive = false;
     }
 
     if (this.deadlockSessionActive && isDeadlockContinue) {
       return this.spinDeadlockContinuation(cfg, request);
+    }
+
+    if (this.heistSessionActive && isHeistContinue) {
+      return this.spinHeistContinuation(cfg, request);
     }
 
     const scenarioRaw = request.meta?.demoSpinScenario;
@@ -109,6 +121,16 @@ export class MockGameApiAdapter implements GameApiAdapter {
       reelStops,
     );
 
+    const forcedRaw = request.meta?.forceBonus;
+    if (
+      typeof forcedRaw === 'string' &&
+      (forcedRaw === 'gears_clash' ||
+        forcedRaw === 'heist_run' ||
+        forcedRaw === 'deadlock_mode')
+    ) {
+      bonus = this.pickBonusPayload(forcedRaw, cfg, reelStops);
+    }
+
     if (bonus?.type === 'deadlock_mode') {
       this.deadlockSessionActive = true;
       this.deadlockSessionStep = 0;
@@ -122,6 +144,13 @@ export class MockGameApiAdapter implements GameApiAdapter {
       };
     }
 
+    if (bonus?.type === 'heist_run') {
+      this.heistSessionActive = true;
+      this.heistSessionAwarded = bonus.payload.freeSpinsAwarded;
+      this.heistSessionCurrent = bonus.payload.currentSpin ?? 1;
+      this.heistSessionStickyWilds = [...(bonus.payload.stickyWilds ?? [])];
+    }
+
     const displayHighlights =
       evaluated.displayHighlights.length > 0 ? evaluated.displayHighlights : undefined;
     const displayWinLines =
@@ -133,6 +162,145 @@ export class MockGameApiAdapter implements GameApiAdapter {
       winAmount,
       balanceAfter: this.balance,
       bonus,
+      ...(displayHighlights ? { displayHighlights } : {}),
+      ...(displayWinLines ? { displayWinLines } : {}),
+    };
+  }
+
+  private mergeStickyWilds(
+    incoming: HeistRunStickyWild[],
+  ): HeistRunStickyWild[] {
+    const key = (w: HeistRunStickyWild) => `${w.reel},${w.row}`;
+    const map = new Map<string, HeistRunStickyWild>();
+    for (const w of this.heistSessionStickyWilds) {
+      map.set(key(w), { ...w });
+    }
+    for (const w of incoming) {
+      map.set(key(w), { ...w });
+    }
+    return [...map.values()];
+  }
+
+  private mockHeistContinuationPayload(
+    cfg: GameConfig,
+    reelStops: string[][],
+  ): HeistRunPayload {
+    const newCount = this.rng() < 0.65 ? 1 + Math.floor(this.rng() * 2) : 0;
+    const fresh: HeistRunStickyWild[] = [];
+    for (let i = 0; i < newCount; i++) {
+      fresh.push({
+        reel: Math.floor(this.rng() * cfg.grid.reels),
+        row: Math.floor(this.rng() * cfg.grid.rows),
+        ...(this.rng() < 0.35
+          ? { multiplier: 2 + Math.floor(this.rng() * 3) }
+          : {}),
+      });
+    }
+    this.heistSessionStickyWilds = this.mergeStickyWilds(fresh);
+    return {
+      freeSpinsAwarded: this.heistSessionAwarded,
+      currentSpin: this.heistSessionCurrent,
+      stickyWilds: this.heistSessionStickyWilds,
+    };
+  }
+
+  private async spinHeistContinuation(
+    cfg: GameConfig,
+    request: SpinRequest,
+  ): Promise<SpinResult> {
+    await this.delay(55 + this.rng() * 80);
+    const bet = Math.max(0, Math.min(request.bet, this.balance));
+    this.heistSessionCurrent += 1;
+
+    const reelStops = this.sampleReelGrid(cfg);
+    const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
+    const winAmount = evaluated.winAmount;
+    this.balance = Math.max(0, Math.round(this.balance - bet + winAmount));
+    const spinId = `mock-heist-${++this.spinCounter}`;
+
+    if (this.heistSessionCurrent > this.heistSessionAwarded) {
+      this.heistSessionActive = false;
+      return {
+        spinId,
+        reelStops,
+        winAmount,
+        balanceAfter: this.balance,
+        bonus: null,
+        ...(evaluated.displayHighlights.length > 0
+          ? { displayHighlights: evaluated.displayHighlights }
+          : {}),
+        ...(evaluated.displayWinLines.length > 0
+          ? { displayWinLines: evaluated.displayWinLines }
+          : {}),
+      };
+    }
+
+    const payload = this.mockHeistContinuationPayload(cfg, reelStops);
+    const displayHighlights =
+      evaluated.displayHighlights.length > 0 ? evaluated.displayHighlights : undefined;
+    const displayWinLines =
+      evaluated.displayWinLines.length > 0 ? evaluated.displayWinLines : undefined;
+
+    return {
+      spinId,
+      reelStops,
+      winAmount,
+      balanceAfter: this.balance,
+      bonus: { type: 'heist_run', payload },
+      ...(displayHighlights ? { displayHighlights } : {}),
+      ...(displayWinLines ? { displayWinLines } : {}),
+    };
+  }
+
+  private async spinDeadlockContinuation(
+    cfg: GameConfig,
+    request: SpinRequest,
+  ): Promise<SpinResult> {
+    await this.delay(55 + this.rng() * 70);
+    const bet = Math.max(0, Math.min(request.bet, this.balance));
+    this.deadlockSessionStep += 1;
+    const idx = this.deadlockSessionStep - 1;
+
+    if (idx >= MOCK_DEADLOCK_DEMO_SEQUENCE.length) {
+      this.deadlockSessionActive = false;
+      const reelStops = this.sampleReelGrid(cfg);
+      const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
+      /** Demo-Abschluss — fester Beispiel-Gewinn (Mock, kein Produkt-RTP). */
+      const winAmount = 920 + Math.floor(this.rng() * 80);
+      this.balance = Math.max(0, Math.round(this.balance - bet + winAmount));
+      const spinId = `mock-deadlock-final-${++this.spinCounter}`;
+      return {
+        spinId,
+        reelStops,
+        winAmount,
+        balanceAfter: this.balance,
+        bonus: null,
+        ...(evaluated.displayHighlights.length > 0
+          ? { displayHighlights: evaluated.displayHighlights }
+          : {}),
+        ...(evaluated.displayWinLines.length > 0
+          ? { displayWinLines: evaluated.displayWinLines }
+          : {}),
+      };
+    }
+
+    const payload = MOCK_DEADLOCK_DEMO_SEQUENCE[idx]!;
+    const reelStops = this.sampleReelGrid(cfg);
+    const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
+    const winAmount = evaluated.winAmount;
+    this.balance = Math.max(0, Math.round(this.balance - bet + winAmount));
+    const spinId = `mock-deadlock-${++this.spinCounter}`;
+    const displayHighlights =
+      evaluated.displayHighlights.length > 0 ? evaluated.displayHighlights : undefined;
+    const displayWinLines =
+      evaluated.displayWinLines.length > 0 ? evaluated.displayWinLines : undefined;
+
+    return {
+      spinId,
+      reelStops,
+      winAmount,
+      balanceAfter: this.balance,
+      bonus: { type: 'deadlock_mode', payload },
       ...(displayHighlights ? { displayHighlights } : {}),
       ...(displayWinLines ? { displayWinLines } : {}),
     };
@@ -173,8 +341,7 @@ export class MockGameApiAdapter implements GameApiAdapter {
     return null;
   }
 
-  private mockGearsClashPayload(cfg: GameConfig): GearsClashPayload {
-    const range = cfg.multiplierRanges;
+  private mockGearsClashPayload(cfg: GameConfig): GearsClashPayload {    const range = cfg.multiplierRanges;
     const span = Math.max(1, range.max - range.min);
     const mulA = range.min + Math.floor(this.rng() * span);
     const mulB = range.min + Math.floor(this.rng() * span);
@@ -252,59 +419,5 @@ export class MockGameApiAdapter implements GameApiAdapter {
       out.push(col);
     }
     return out;
-  }
-
-  private async spinDeadlockContinuation(
-    cfg: GameConfig,
-    request: SpinRequest,
-  ): Promise<SpinResult> {
-    await this.delay(55 + this.rng() * 70);
-    const bet = Math.max(0, Math.min(request.bet, this.balance));
-    this.deadlockSessionStep += 1;
-    const idx = this.deadlockSessionStep - 1;
-
-    if (idx >= MOCK_DEADLOCK_DEMO_SEQUENCE.length) {
-      this.deadlockSessionActive = false;
-      const reelStops = this.sampleReelGrid(cfg);
-      const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
-      /** Demo-Abschluss — fester Beispiel-Gewinn (Mock, kein Produkt-RTP). */
-      const winAmount = 920 + Math.floor(this.rng() * 80);
-      this.balance = Math.max(0, Math.round(this.balance - bet + winAmount));
-      const spinId = `mock-deadlock-final-${++this.spinCounter}`;
-      return {
-        spinId,
-        reelStops,
-        winAmount,
-        balanceAfter: this.balance,
-        bonus: null,
-        ...(evaluated.displayHighlights.length > 0
-          ? { displayHighlights: evaluated.displayHighlights }
-          : {}),
-        ...(evaluated.displayWinLines.length > 0
-          ? { displayWinLines: evaluated.displayWinLines }
-          : {}),
-      };
-    }
-
-    const payload = MOCK_DEADLOCK_DEMO_SEQUENCE[idx]!;
-    const reelStops = this.sampleReelGrid(cfg);
-    const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
-    const winAmount = evaluated.winAmount;
-    this.balance = Math.max(0, Math.round(this.balance - bet + winAmount));
-    const spinId = `mock-deadlock-${++this.spinCounter}`;
-    const displayHighlights =
-      evaluated.displayHighlights.length > 0 ? evaluated.displayHighlights : undefined;
-    const displayWinLines =
-      evaluated.displayWinLines.length > 0 ? evaluated.displayWinLines : undefined;
-
-    return {
-      spinId,
-      reelStops,
-      winAmount,
-      balanceAfter: this.balance,
-      bonus: { type: 'deadlock_mode', payload },
-      ...(displayHighlights ? { displayHighlights } : {}),
-      ...(displayWinLines ? { displayWinLines } : {}),
-    };
   }
 }

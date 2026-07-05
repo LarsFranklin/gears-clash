@@ -22,7 +22,7 @@ alwaysApply: true
 
 1. Änderung in `src/index.ts` aufnehmen (Export ergänzen).
 2. README-Beispiele angleichen (ESM, IIFE, Laravel, React).
-3. IIFE-Globalobjekt `GearsClash` am Ende von `src/index.ts` erweitern.
+3. IIFE: neue Public-Exports in `src/index.ts` — erscheinen automatisch als `GearsClash.<Name>` (named exports, kein default-Wrapper).
 4. Test in `src/__tests__/` ergänzen (z. B. `httpAdapter.errors.test.ts`-Pendant).
 5. Falls `GameConfig` betroffen: `gameConfig.schema.json` aktualisieren und Schema-Test grün halten.
 

@@ -114,6 +114,8 @@ export interface SlotMathConfig {
 }
 
 export interface GameConfig {
+  /** Optionaler Schema-/Config-Versions-Marker (z. B. `"1.0"`), siehe `gameConfig.schema.json`. */
+  version?: string;
   grid: GridConfig;
   symbols: SymbolDef[];
   /** Map symbolId → relative weight (Mock / Server können daraus ableiten). */
