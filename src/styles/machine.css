@@ -71,12 +71,12 @@
 }
 
 .gc-machine-deck .gc-hud-panel__label {
-  font-size: 0.55rem;
+  font-size: max(12px, 0.75rem);
   color: rgba(232, 196, 120, 0.78);
 }
 
 .gc-machine-deck .gc-hud-panel__value {
-  font-size: clamp(0.85rem, 2vw, 1.05rem);
+  font-size: max(12px, clamp(0.85rem, 2vw, 1.05rem));
   color: #fff4d2;
   text-shadow: 0 0 12px rgba(255, 170, 60, 0.25);
 }
@@ -88,11 +88,17 @@
 .gc-machine-deck .gc-button--spin {
   width: clamp(2.8rem, 7vw, 3.6rem);
   height: clamp(2.8rem, 7vw, 3.6rem);
-  font-size: 0.72rem;
+  font-size: max(12px, 0.75rem);
 }
 
 .gc-machine-deck .gc-controls-bar {
   width: 100%;
   padding: 0;
   gap: 0.28rem;
+}
+
+.gc-machine-deck .gc-controls-bar__label,
+.gc-machine-deck .gc-controls-bar__toggle,
+.gc-machine-deck .gc-controls-bar__auto-select {
+  font-size: max(12px, 0.75rem);
 }

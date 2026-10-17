@@ -6,6 +6,7 @@ import {
   CABINET_ASPECT,
   cabinetCanvasSize,
   cabinetOpening,
+  fitCabinetToBox,
 } from '../renderer/cabinetLayout';
 
 describe('Slot-Schrank', () => {
@@ -29,5 +30,25 @@ describe('Slot-Schrank', () => {
     expect(opening.h).toBeGreaterThan(totalH * 0.5);
     expect(opening.x + opening.w).toBeLessThan(totalW);
     expect(opening.y + opening.h).toBeLessThan(totalH);
+  });
+
+  it('skaliert gleichmäßig, wenn die Box niedriger ist als der Schrank', () => {
+    const intrinsic = cabinetCanvasSize(920);
+    const fitted = fitCabinetToBox(920, 768);
+    expect(fitted.totalH).toBeLessThanOrEqual(768);
+    expect(fitted.totalW).toBeLessThan(intrinsic.totalW);
+    expect(fitted.totalW / fitted.totalH).toBeCloseTo(
+      intrinsic.totalW / intrinsic.totalH,
+      2,
+    );
+    expect(fitted.scale).toBeCloseTo(768 / intrinsic.totalH, 5);
+  });
+
+  it('lässt eine ausreichend hohe Box unverändert', () => {
+    const intrinsic = cabinetCanvasSize(920);
+    const fitted = fitCabinetToBox(920, 1080);
+    expect(fitted.totalW).toBe(intrinsic.totalW);
+    expect(fitted.totalH).toBe(intrinsic.totalH);
+    expect(fitted.scale).toBe(1);
   });
 });

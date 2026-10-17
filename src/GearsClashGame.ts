@@ -27,6 +27,7 @@ import { PayoutEngine } from './core/PayoutEngine';
 import { ReelEngine } from './core/ReelEngine';
 import { SlotEngine } from './core/SlotEngine';
 import { AssetLoader } from './renderer/AssetLoader';
+import { fitCabinetToBox } from './renderer/cabinetLayout';
 import { loadSymbolTexturesFromManifest } from './renderer/loadSymbolTextures';
 import {
   PixiSlotRenderer,
@@ -459,6 +460,7 @@ export class GearsClashGame {
       this.heistRunSessionUi.mount(this.rootEl);
 
       container.appendChild(this.rootEl);
+      this.syncLayoutPresentation();
 
       const manifest = resolveManifestPaths(
         this.options.assetManifest ?? defaultAssetManifest,
@@ -531,7 +533,8 @@ export class GearsClashGame {
 
   private syncLayoutPresentation(): void {
     if (!this.rootEl) return;
-    const w = this.rootEl.getBoundingClientRect().width;
+    const hostW = this.options.container.getBoundingClientRect().width;
+    const w = hostW > 0 ? hostW : this.rootEl.getBoundingClientRect().width;
     const mode = this.options.layoutMode ?? resolveGcLayoutMode(w);
     let fx: GcFxQuality =
       this.options.fxQuality ?? defaultFxQualityForLayout(mode);
@@ -545,7 +548,39 @@ export class GearsClashGame {
     this.rootEl.dataset.gcLayout = mode;
     this.rootEl.dataset.gcFxQuality = fx;
     this.rootEl.dataset.gcOrientation = this.resolveOrientation();
+    this.syncCabinetFit(mode);
     this.renderer?.setPresentationMode({ layoutMode: mode, fxQuality: fx });
+  }
+
+  /**
+   * Desktop: Schrank inkl. Konsole gleichmäßig in den Host/Viewport.
+   * Compact (Mobile-Bottom-Sheet) bleibt unangetastet.
+   */
+  private syncCabinetFit(mode: GcLayoutMode): void {
+    if (!this.rootEl) return;
+    if (mode === 'compact') {
+      this.rootEl.style.width = '';
+      this.rootEl.style.maxWidth = '';
+      return;
+    }
+    const host = this.options.container;
+    const boxW = Math.max(
+      1,
+      Math.floor(
+        host.clientWidth ||
+          (typeof window !== 'undefined' ? window.innerWidth : this.rootEl.clientWidth),
+      ),
+    );
+    let boxH = Math.floor(host.clientHeight);
+    if (typeof window !== 'undefined') {
+      boxH = boxH > 0 ? Math.min(boxH, window.innerHeight) : window.innerHeight;
+    }
+    const fit = fitCabinetToBox(boxW, boxH);
+    const next = `${fit.totalW}px`;
+    if (this.rootEl.style.width !== next) {
+      this.rootEl.style.width = next;
+      this.rootEl.style.maxWidth = next;
+    }
   }
 
   /**

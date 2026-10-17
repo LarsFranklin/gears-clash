@@ -62,11 +62,49 @@ export interface SlotCabinetGrid {
   rowPitch: number;
 }
 
-export function cabinetCanvasSize(rawWidth: number): { totalW: number; totalH: number; frameH: number } {
+export interface CabinetCanvasSize {
+  totalW: number;
+  totalH: number;
+  frameH: number;
+}
+
+export interface FittedCabinet extends CabinetCanvasSize {
+  /** Gleichmäßiger Faktor gegenüber der breitenbasierten Intrinsic-Größe. */
+  scale: number;
+}
+
+/**
+ * Intrinsic-Maß nur aus der Breite — historisches Verhalten, das bei flachen
+ * Viewports höher als das Fenster wird.
+ */
+export function cabinetCanvasSize(rawWidth: number): CabinetCanvasSize {
   const totalW = Math.max(260, Math.floor(rawWidth));
   const frameH = Math.max(180, Math.ceil(totalW / CABINET_FRAME_ASPECT));
   const totalH = Math.max(frameH + 80, Math.ceil(frameH / (1 - CABINET_CONSOLE_FRAC)));
   return { totalW, totalH, frameH };
+}
+
+/**
+ * Schrank inkl. Konsole gleichmäßig in eine Box setzen.
+ * `scale` ist min(Breite, Höhe) und nie gestreckt.
+ */
+export function fitCabinetToBox(boxW: number, boxH: number): FittedCabinet {
+  const width = Math.max(1, Math.floor(boxW));
+  const intrinsic = cabinetCanvasSize(width);
+  const heightLimit =
+    Number.isFinite(boxH) && boxH > 0 ? Math.floor(boxH) : Number.POSITIVE_INFINITY;
+  if (intrinsic.totalH <= heightLimit) {
+    return { ...intrinsic, scale: 1 };
+  }
+  const scale = heightLimit / intrinsic.totalH;
+  const totalH = Math.max(1, heightLimit);
+  const totalW = Math.max(1, Math.floor(intrinsic.totalW * scale));
+  return {
+    totalW,
+    totalH,
+    frameH: cabinetFrameHeight(totalH),
+    scale,
+  };
 }
 
 export function cabinetFrameHeight(totalH: number): number {
