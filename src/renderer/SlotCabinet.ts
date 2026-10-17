@@ -196,6 +196,21 @@ export class SlotCabinet {
     }
   }
 
+  /** Baut den echten Schrank aus bereits geladenen Texturen (Tests / Offline). */
+  static fromTextures(textures: Map<string, Texture>): SlotCabinet {
+    return new SlotCabinet(textures, []);
+  }
+
+  /** Kronenzahnrad — dasselbe Sprite, das `layout()` platziert. */
+  crownGearSprite(): Sprite {
+    return this.gears[0]!.sprite;
+  }
+
+  /** Fensterplatte — dieselbe Fläche wie die Innenöffnung nach `layout()`. */
+  windowOpeningSprite(): TilingSprite {
+    return this.plate;
+  }
+
   static async load(): Promise<SlotCabinet | null> {
     const urls = Object.values(CABINET_ASSETS);
     const textures = new Map<string, Texture>();
@@ -242,6 +257,7 @@ export class SlotCabinet {
       this.vent,
       this.pipes,
       totalW,
+      totalH,
       frameH,
       short,
     );
