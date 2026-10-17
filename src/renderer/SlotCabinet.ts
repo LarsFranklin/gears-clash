@@ -242,6 +242,7 @@ export class SlotCabinet {
       this.vent,
       this.pipes,
       totalW,
+      totalH,
       frameH,
       short,
     );

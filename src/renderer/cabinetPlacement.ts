@@ -1,5 +1,11 @@
 import { Container, Graphics, NineSliceSprite, Sprite, Texture, TilingSprite } from 'pixi.js';
-import { CABINET_CORNER_OF_SHORT, type CabinetRect, type SlotCabinetGrid } from './cabinetLayout';
+import {
+  CABINET_CORNER_OF_SHORT,
+  cabinetCrownGearRect,
+  cabinetTopRailRect,
+  type CabinetRect,
+  type SlotCabinetGrid,
+} from './cabinetLayout';
 
 export function spriteOf(texture: Texture): Sprite {
   const sprite = new Sprite(texture);
@@ -85,8 +91,9 @@ export function placeCabinetShell(
     sprite.position.set(x, y);
   });
 
-  sizeRail(rails.top, totalW * 0.7, short * 0.07, 0.08, 0.06);
-  rails.top.position.set((totalW - rails.top.width) / 2, short * 0.004);
+  const topRail = cabinetTopRailRect(totalW, totalH);
+  sizeRail(rails.top, topRail.w, topRail.h, 0.08, 0.06);
+  rails.top.position.set(topRail.x, topRail.y);
 
   sizeRail(rails.bottom, totalW * 0.7, short * 0.055, 0.08, 0.06);
   rails.bottom.position.set((totalW - rails.bottom.width) / 2, frameH - rails.bottom.height * 0.35);
@@ -106,12 +113,14 @@ export function placeCabinetOrnaments(
   vent: Sprite,
   pipes: Sprite[],
   totalW: number,
+  totalH: number,
   frameH: number,
   short: number,
 ): void {
   const [large, medium, small] = gears;
-  fitUniform(large!, short * 0.16);
-  large!.position.set(totalW * 0.5, short * 0.055);
+  const crown = cabinetCrownGearRect(totalW, totalH);
+  fitUniform(large!, crown.w);
+  large!.position.set(crown.x + crown.w / 2, crown.y + crown.h / 2);
   fitUniform(medium!, short * 0.075);
   medium!.position.set(short * 0.07, frameH * 0.2);
   fitUniform(small!, short * 0.058);

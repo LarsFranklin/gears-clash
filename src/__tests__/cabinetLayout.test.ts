@@ -5,7 +5,9 @@ import {
   CABINET_ASSET_PATHS,
   CABINET_ASPECT,
   cabinetCanvasSize,
+  cabinetCrownGearRect,
   cabinetOpening,
+  cabinetTopRailBrassY,
 } from '../renderer/cabinetLayout';
 
 describe('Slot-Schrank', () => {
@@ -29,5 +31,20 @@ describe('Slot-Schrank', () => {
     expect(opening.h).toBeGreaterThan(totalH * 0.5);
     expect(opening.x + opening.w).toBeLessThan(totalW);
     expect(opening.y + opening.h).toBeLessThan(totalH);
+  });
+
+  it('hält die Unterkante des Kronenzahnrads auf der Messingkante, nicht in der Öffnung', () => {
+    const desktopWidths = [1280, 1366, 1440, 1600, 1920];
+    for (const rawWidth of desktopWidths) {
+      const { totalW, totalH } = cabinetCanvasSize(rawWidth);
+      const opening = cabinetOpening(totalW, totalH);
+      const crown = cabinetCrownGearRect(totalW, totalH);
+      const brassY = cabinetTopRailBrassY(totalW, totalH);
+      const crownBottom = crown.y + crown.h;
+
+      expect(crownBottom, `${rawWidth}px`).toBeLessThanOrEqual(opening.y);
+      expect(crownBottom, `${rawWidth}px`).toBeCloseTo(brassY, 5);
+      expect(brassY, `${rawWidth}px`).toBeLessThanOrEqual(opening.y);
+    }
   });
 });

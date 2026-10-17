@@ -14,6 +14,14 @@ export const CABINET_ASPECT = CABINET_FRAME_ASPECT * (1 - CABINET_CONSOLE_FRAC);
 /** Eck-Sprite relativ zur kürzeren Rahmenkante, klein genug, dass die Ecken die Symbole nicht zudecken. */
 export const CABINET_CORNER_OF_SHORT = 0.36;
 
+/** Obere Messingleiste: Anteil der kürzeren Rahmenkante. */
+export const CABINET_TOP_RAIL_Y_OF_SHORT = 0.004;
+export const CABINET_TOP_RAIL_H_OF_SHORT = 0.07;
+export const CABINET_TOP_RAIL_W_OF_TOTAL = 0.7;
+
+/** Kronenzahnrad: längste Kante relativ zur kürzeren Rahmenkante. */
+export const CABINET_CROWN_GEAR_OF_SHORT = 0.16;
+
 export const CABINET_ASSETS = {
   cornerTl: '/assets/cabinet/corner_tl.png',
   cornerTr: '/assets/cabinet/corner_tr.png',
@@ -88,4 +96,41 @@ export function cabinetOpening(totalW: number, totalH: number): CabinetRect {
 
 export function cabinetWell(totalW: number, totalH: number): CabinetRect {
   return cabinetOpening(totalW, totalH);
+}
+
+export function cabinetShortEdge(totalW: number, totalH: number): number {
+  return Math.min(totalW, cabinetFrameHeight(totalH));
+}
+
+/** Obere Leiste vor der Maske — die sichtbare Messingkante endet an der Öffnung. */
+export function cabinetTopRailRect(totalW: number, totalH: number): CabinetRect {
+  const short = cabinetShortEdge(totalW, totalH);
+  const w = totalW * CABINET_TOP_RAIL_W_OF_TOTAL;
+  return {
+    x: (totalW - w) / 2,
+    y: short * CABINET_TOP_RAIL_Y_OF_SHORT,
+    w,
+    h: short * CABINET_TOP_RAIL_H_OF_SHORT,
+  };
+}
+
+/**
+ * Untere Messingkante der oberen Leiste, geklemmt auf die Öffnungsoberkante.
+ * Das Kronenzahnrad sitzt auf dieser Kante und bleibt oberhalb der Öffnung.
+ */
+export function cabinetTopRailBrassY(totalW: number, totalH: number): number {
+  const rail = cabinetTopRailRect(totalW, totalH);
+  const opening = cabinetOpening(totalW, totalH);
+  return Math.min(rail.y + rail.h, opening.y);
+}
+
+export function cabinetCrownGearRect(totalW: number, totalH: number): CabinetRect {
+  const size = cabinetShortEdge(totalW, totalH) * CABINET_CROWN_GEAR_OF_SHORT;
+  const bottom = cabinetTopRailBrassY(totalW, totalH);
+  return {
+    x: totalW * 0.5 - size / 2,
+    y: bottom - size,
+    w: size,
+    h: size,
+  };
 }
