@@ -1,6 +1,6 @@
 # Dokumentation — Gears Clash
 
-Überblick über die Markdown-Dokumente im Projekt.
+Überblick über die Markdown-Dokumente im Projekt. Gears Clash ist ein eigenes Produkt in früher Produktion. Der aktuelle Arbeitsstand steht in [PROJEKTSTAND.md](PROJEKTSTAND.md).
 
 ## Bonus-Features (pro Modus eine Datei)
 
