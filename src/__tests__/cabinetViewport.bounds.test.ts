@@ -10,6 +10,9 @@ import {
   MACHINE_DECK_BOTTOM_PCT,
   MACHINE_DECK_HEIGHT_PCT,
   MACHINE_DECK_INSET_X_PCT,
+  CONSOLE_FONT_MIN_PX,
+  MACHINE_DECK_GAP_PX,
+  MACHINE_HUD_H_PX,
   PLAYER_STAGE_MAX_HEIGHT,
   PLAYER_STAGE_MAX_WIDTH,
   cabinetCssVars,
@@ -115,11 +118,34 @@ describe('Schrank-Viewport-Bounds', () => {
     );
     expect(flush.cabinet.top).toBeLessThan(CABINET_FIT_MARGIN_TOP_PX);
     expect(flush.cabinet.bottom).toBeGreaterThan(768 - CABINET_FIT_MARGIN_BOTTOM_PX);
+    expect(cabinetCssVars(flush)['--gc-fit-margin-top']).toBe('0px');
+    expect(cabinetCssVars(flush)['--gc-fit-margin-bottom']).toBe('0px');
     expect(() => {
       expect(flush.cabinet.top).toBeGreaterThanOrEqual(16);
     }).toThrow();
     expect(() => {
       expect(flush.cabinet.bottom).toBeLessThanOrEqual(752);
+    }).toThrow();
+  });
+
+  it('Gegenprobe: unskalierte Tasten brauchen mehr Höhe als das Deck bei 1366', () => {
+    const fitted = layoutCabinetInViewport({ width: 1366, height: 768 });
+    const unscaled = layoutCabinetInViewport(
+      { width: 1366, height: 768 },
+      { unscaledConsole: true },
+    );
+    expect(fitted.keyRow.bottom).toBeLessThanOrEqual(fitted.plate.bottom);
+    expect(unscaled.scale).toBe(1);
+    expect(cabinetCssVars(unscaled)['--gc-cabinet-scale']).toBe('1');
+    const needed =
+      MACHINE_HUD_H_PX +
+      MACHINE_DECK_GAP_PX * 2 +
+      spinKeySizePx(unscaled.fit.totalW, 1) +
+      CONTROL_KEY_PX +
+      CONSOLE_FONT_MIN_PX;
+    expect(needed).toBeGreaterThan(unscaled.deck.height);
+    expect(() => {
+      expect(needed).toBeLessThanOrEqual(unscaled.deck.height);
     }).toThrow();
   });
 
@@ -145,6 +171,7 @@ describe('CSS-Fallbacks = TS-Konstanten', () => {
   );
 
   it('hält Aspect, Max-Breite und Fit-Ränder in demo.css', () => {
+    expect(demoCss).not.toMatch(/--gc-cabinet-aspect:\s*0\.928/);
     expect(demoCss).toMatch(
       new RegExp(`--gc-cabinet-max-width:\\s*${PLAYER_STAGE_MAX_WIDTH}px`),
     );

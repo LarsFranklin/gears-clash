@@ -12,6 +12,18 @@ const params = new URLSearchParams(window.location.search);
 const toolsSurface = import.meta.env.MODE === 'tools' || params.get('tools') === '1';
 document.body.classList.toggle('gc-demo-page--player', !toolsSurface);
 document.body.classList.toggle('gc-demo-page--tools', toolsSurface);
+const gcFit = params.get('gcFit');
+const cabinetFit =
+  gcFit === 'widthOnly'
+    ? { widthOnly: true as const }
+    : gcFit === 'noMargin'
+      ? { noMargin: true as const }
+      : gcFit === 'unscaledConsole'
+        ? { unscaledConsole: true as const }
+        : undefined;
+if (gcFit === 'widthOnly' || gcFit === 'noMargin' || gcFit === 'unscaledConsole') {
+  document.body.dataset.gcFit = gcFit;
+}
 const viteSpinUrl = import.meta.env.VITE_SPIN_URL as string | undefined;
 const viteBalanceUrl = import.meta.env.VITE_BALANCE_URL as string | undefined;
 const useHttpAdapter =
@@ -52,6 +64,7 @@ const game = new GearsClashGame({
   container: root,
   apiAdapter,
   assetManifest: defaultAssetManifest,
+  cabinetFit,
   hostAdapter: {
     currency: 'COINS',
     locale: 'de-DE',

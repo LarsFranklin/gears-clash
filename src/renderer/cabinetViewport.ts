@@ -65,6 +65,8 @@ export interface CabinetViewportOptions {
   widthOnly?: boolean;
   /** Gegenprobe: ohne 16-px-Rand. */
   noMargin?: boolean;
+  /** Gegenprobe: Tasten/Spin unskaliert (32 px / 2.8–3.6 rem) im verkleinerten Schrank. */
+  unscaledConsole?: boolean;
   rootFontPx?: number;
 }
 
@@ -83,6 +85,8 @@ export interface CabinetViewportLayout {
   viewport: ViewportSize;
   fit: FittedCabinet;
   scale: number;
+  marginTop: number;
+  marginBottom: number;
   cabinet: BoundsBox;
   frame: BoundsBox;
   opening: BoundsBox;
@@ -147,7 +151,7 @@ export function layoutCabinetInViewport(
     ? { ...cabinetCanvasSize(boxW), scale: 1 }
     : fitCabinetToBox(boxW, boxH);
 
-  const scale = cabinetDesignScale(fit.totalW);
+  const scale = options.unscaledConsole ? 1 : cabinetDesignScale(fit.totalW);
   const x = (viewport.width - fit.totalW) / 2;
   const centeredY = (viewport.height - fit.totalH) / 2;
   const y = options.widthOnly ? centeredY : Math.max(marginTop, centeredY);
@@ -181,19 +185,23 @@ export function layoutCabinetInViewport(
   const groupTop = deck.y + Math.max(0, (deck.height - contentH) / 2);
 
   let spinY = groupTop + hudH + gap;
-  if (spinY + spinSize > deck.bottom - keyRowH) {
+  if (!options.unscaledConsole && spinY + spinSize > deck.bottom - keyRowH) {
     spinY = Math.max(deck.y, deck.bottom - keyRowH - gap - spinSize);
   }
   const spinX = deck.x + (deck.width - spinSize) / 2;
   const spin = bounds(spinX, spinY, spinSize, spinSize);
 
-  const keyRowY = Math.min(spin.bottom + gap, deck.bottom - keyRowH);
+  const keyRowY = options.unscaledConsole
+    ? spin.bottom + gap
+    : Math.min(spin.bottom + gap, deck.bottom - keyRowH);
   const keyRow = bounds(deck.x, keyRowY, deck.width, keyRowH);
 
   return {
     viewport,
     fit,
     scale,
+    marginTop,
+    marginBottom,
     cabinet,
     frame,
     opening,
@@ -206,12 +214,14 @@ export function layoutCabinetInViewport(
 }
 
 export function cabinetCssVars(
-  layout?: Pick<CabinetViewportLayout, 'fit' | 'scale'>,
+  layout?: Pick<CabinetViewportLayout, 'fit' | 'scale' | 'marginTop' | 'marginBottom'>,
 ): Record<string, string> {
   const designW = PLAYER_STAGE_MAX_WIDTH;
   const designH = PLAYER_STAGE_MAX_HEIGHT;
   const fit = layout?.fit ?? { ...cabinetCanvasSize(designW), scale: 1 };
   const scale = layout?.scale ?? cabinetDesignScale(fit.totalW);
+  const marginTop = layout?.marginTop ?? CABINET_FIT_MARGIN_TOP_PX;
+  const marginBottom = layout?.marginBottom ?? CABINET_FIT_MARGIN_BOTTOM_PX;
   return {
     '--gc-cabinet-aspect': `${designW} / ${designH}`,
     '--gc-cabinet-max-width': `${designW}px`,
@@ -225,14 +235,14 @@ export function cabinetCssVars(
     '--gc-spin-max': `${SPIN_MAX_REM}rem`,
     '--gc-spin-vw-frac': String(SPIN_VW),
     '--gc-font-min': `${CONSOLE_FONT_MIN_PX}px`,
-    '--gc-fit-margin-top': `${CABINET_FIT_MARGIN_TOP_PX}px`,
-    '--gc-fit-margin-bottom': `${CABINET_FIT_MARGIN_BOTTOM_PX}px`,
+    '--gc-fit-margin-top': `${marginTop}px`,
+    '--gc-fit-margin-bottom': `${marginBottom}px`,
   };
 }
 
 export function applyCabinetCssVars(
   el: HTMLElement,
-  layout?: Pick<CabinetViewportLayout, 'fit' | 'scale'>,
+  layout?: Pick<CabinetViewportLayout, 'fit' | 'scale' | 'marginTop' | 'marginBottom'>,
 ): void {
   const vars = cabinetCssVars(layout);
   for (const [name, value] of Object.entries(vars)) {

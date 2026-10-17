@@ -30,6 +30,7 @@ import { AssetLoader } from './renderer/AssetLoader';
 import {
   applyCabinetCssVars,
   layoutCabinetInViewport,
+  type CabinetViewportOptions,
 } from './renderer/cabinetViewport';
 import { loadSymbolTexturesFromManifest } from './renderer/loadSymbolTextures';
 import {
@@ -82,7 +83,14 @@ export interface GearsClashGameOptions {
   controls?: ControlsVisibilityOptions;
   /** Leertaste/Enter lösen einen Spin aus, solange der Slot fokussiert ist. Default: true. */
   keyboardControls?: boolean;
+  /**
+   * Demo/Gegenprobe: `widthOnly` (altes Breiten-Fit), `noMargin` (ohne 16-px-Rand)
+   * oder `unscaledConsole` (Tasten 32 px im verkleinerten Schrank).
+   */
+  cabinetFit?: CabinetViewportOptions;
 }
+
+export type { CabinetViewportOptions };
 
 /** Welche Bedienelemente die Controls-Bar zeigt — alles einzeln abschaltbar. */
 export interface ControlsVisibilityOptions {
@@ -575,12 +583,17 @@ export class GearsClashGame {
       typeof window !== 'undefined' ? window.innerWidth : this.options.container.clientWidth;
     const vpH =
       typeof window !== 'undefined' ? window.innerHeight : this.options.container.clientHeight;
-    const layout = layoutCabinetInViewport({
-      width: Math.max(1, vpW),
-      height: Math.max(1, vpH),
-    });
+    const layout = layoutCabinetInViewport(
+      {
+        width: Math.max(1, vpW),
+        height: Math.max(1, vpH),
+      },
+      this.options.cabinetFit,
+    );
     applyCabinetCssVars(this.rootEl, layout);
     applyCabinetCssVars(this.options.container, layout);
+    const stageHost = this.options.container.parentElement;
+    if (stageHost) applyCabinetCssVars(stageHost, layout);
     if (this.frameEl) applyCabinetCssVars(this.frameEl, layout);
     if (this.deckEl) applyCabinetCssVars(this.deckEl, layout);
     const next = `${layout.fit.totalW}px`;

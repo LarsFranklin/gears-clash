@@ -137,10 +137,22 @@ html:has(> body.gc-demo-page--player) {
   overflow: hidden;
 }
 
+html:has(> body.gc-demo-page--player[data-gc-fit='widthOnly']) {
+  height: auto;
+  overflow: auto;
+}
+
 .gc-demo-page--player {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
+}
+
+/* Gegenprobe: altes Breiten-Fit inkl. Shell-Padding (scrollt bei 1366×768). */
+.gc-demo-page--player[data-gc-fit='widthOnly'] {
+  height: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .gc-demo-page--player .gc-demo-page__shell {
@@ -151,6 +163,14 @@ html:has(> body.gc-demo-page--player) {
   max-height: 100%;
   padding: 0;
   overflow: hidden;
+}
+
+.gc-demo-page--player[data-gc-fit='widthOnly'] .gc-demo-page__shell {
+  height: auto;
+  max-height: none;
+  padding: clamp(0.75rem, 3vw, 2rem);
+  padding-bottom: clamp(1.5rem, 5vw, 3rem);
+  overflow: visible;
 }
 
 .gc-demo-page--player .gc-demo-page__stage {
@@ -170,6 +190,12 @@ html:has(> body.gc-demo-page--player) {
   max-width: 100%;
   max-height: calc(100dvh - var(--gc-fit-margin-top) - var(--gc-fit-margin-bottom));
   height: auto;
+  aspect-ratio: var(--gc-cabinet-aspect);
+}
+
+.gc-demo-page--player[data-gc-fit='widthOnly'] .gc-demo-page__stage {
+  width: min(var(--gc-cabinet-max-width), 96vw);
+  max-height: none;
   aspect-ratio: var(--gc-cabinet-aspect);
 }
 
