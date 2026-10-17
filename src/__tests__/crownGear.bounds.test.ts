@@ -58,23 +58,30 @@ describe('Kronenzahnrad — gerenderte Bounds', () => {
     try {
       for (const viewport of VIEWPORTS) {
         const opening = cabinetOpening(viewport.width, viewport.height);
-        cabinet.layout(viewport.width, viewport.height, opening, gridForOpening(opening));
+        const grid = gridForOpening(opening);
+        cabinet.layout(viewport.width, viewport.height, opening, grid);
 
         const gear = cabinet.crownGearSprite();
-        const window = cabinet.windowOpeningSprite();
+        const plate = cabinet.windowOpeningSprite();
         const gearBounds = gear.getBounds();
-        const openingBounds = window.getBounds();
+        const plateBounds = plate.getBounds();
+        const label = `${viewport.width}x${viewport.height}`;
 
-        expect(gearBounds.bottom, `${viewport.width}x${viewport.height}`).toBeLessThanOrEqual(
-          openingBounds.top,
-        );
+        expect(plateBounds.x, `${label} plate.x`).toBe(opening.x);
+        expect(plateBounds.y, `${label} plate.y`).toBe(opening.y);
+        expect(plateBounds.width, `${label} plate.width`).toBe(opening.w);
+        expect(plateBounds.height, `${label} plate.height`).toBe(opening.h);
 
-        gear.y += 1;
+        expect(gearBounds.bottom, label).toBeLessThanOrEqual(plateBounds.top);
+        expect(gearBounds.bottom, `${label} Reihe 1`).toBeLessThanOrEqual(grid.offsetY);
+
+        const originalY = gear.y;
+        const overlapBottom = plateBounds.top + 1;
+        gear.y += overlapBottom - gearBounds.bottom;
         const moved = gear.getBounds();
-        expect(
-          moved.bottom,
-          `${viewport.width}x${viewport.height} +1px muss die Bedingung verletzen`,
-        ).toBeGreaterThan(openingBounds.top);
+        expect(moved.bottom, `${label} bounds.bottom = opening.top + 1`).toBe(plateBounds.top + 1);
+        expect(moved.bottom, `${label} Negativfall`).toBeGreaterThan(plateBounds.top);
+        gear.y = originalY;
       }
     } finally {
       cabinet.destroy();
