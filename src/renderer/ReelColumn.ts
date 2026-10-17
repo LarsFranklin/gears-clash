@@ -234,14 +234,22 @@ export class ReelColumn {
     this.strip.y = y;
   }
 
-  layout(colIndex: number, cellSize: number, colGap: number, visibleH: number): void {
-    this.cellSize = cellSize;
-    this.pitch = cellSize + ROW_GAP;
+  layout(
+    colIndex: number,
+    cellSize: number,
+    colGap: number,
+    visibleH: number,
+    columnWidth = cellSize,
+    rowPitch = cellSize + ROW_GAP,
+  ): void {
+    this.cellSize = columnWidth;
+    this.pitch = rowPitch;
     this.view.removeChildren();
     this.view.addChild(this.bg, this.maskShape, this.strip);
     this.strip.mask = this.maskShape;
 
-    const w = cellSize;
+    const icon = Math.min(cellSize, rowPitch - ROW_GAP);
+    const w = columnWidth;
     const h = visibleH;
     this.bg.clear();
 
@@ -256,9 +264,8 @@ export class ReelColumn {
     );
     for (let i = 0; i < STRIP_LEN; i++) {
       const slot = new SymbolSlot();
-      slot.layout(cellSize, this.pitch);
-      /** Pivot in Zellenmitte: Position muss Zentrum der Spur sein, sonst wandert die Zelle nach links. */
-      slot.position.set(cellSize / 2, i * this.pitch + this.pitch / 2);
+      slot.layout(icon, this.pitch);
+      slot.position.set(w / 2, i * this.pitch + this.pitch / 2);
       slot.paint(this.stripSymbols[i]!, this.registry, 0, {
         winHighlight: false,
         bonusRevealHighlight: false,
@@ -270,7 +277,7 @@ export class ReelColumn {
       this.slots.push(slot);
     }
 
-    this.view.x = colIndex * (cellSize + colGap);
+    this.view.x = colIndex * (w + colGap);
     this.focusIndex = Math.min(10, STRIP_LEN - this.rows - 4);
     this.idleScrollOffsetPx = 0;
     this.strip.y = -this.focusIndex * this.pitch;

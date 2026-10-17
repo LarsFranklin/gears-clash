@@ -3,6 +3,8 @@ import type { BonusId } from '../config/types';
 import type { GcFxQuality } from '../util/layoutMode';
 import {
   CABINET_ASSETS,
+  cabinetFrameHeight,
+  cabinetWell,
   GAUGE_NEEDLE_ANCHOR_Y,
   type CabinetRect,
   type SlotCabinetGrid,
@@ -10,6 +12,7 @@ import {
 import {
   fitUniform,
   mixColor,
+  placeCabinetConsole,
   placeCabinetLattice,
   placeCabinetOrnaments,
   placeCabinetShell,
@@ -57,10 +60,14 @@ export class SlotCabinet {
   readonly front = new Container();
 
   private readonly plate: TilingSprite;
+  private readonly consolePlate: TilingSprite;
+  private readonly consoleLip: Sprite;
   private readonly glow: Sprite;
   private readonly steamBack = new Container();
   private readonly steamBackMask = new Graphics();
   private readonly lattice = new Container();
+  private readonly shell = new Container();
+  private readonly shellMask = new Graphics();
   private readonly rails: Record<'top' | 'bottom' | 'left' | 'right', NineSliceSprite>;
   private readonly corners: Sprite[];
   private readonly pipes: Sprite[];
@@ -98,6 +105,9 @@ export class SlotCabinet {
     const plateTex = tex('plate');
     plateTex.source.style.addressMode = 'repeat';
     this.plate = new TilingSprite({ texture: plateTex, width: 10, height: 10 });
+    this.consolePlate = new TilingSprite({ texture: plateTex, width: 10, height: 10 });
+    this.consoleLip = spriteOf(tex('edgeBottom'));
+    this.consoleLip.anchor.set(0, 0);
     this.glow = spriteOf(tex('glow'));
     this.glow.anchor.set(0.5);
     this.glow.blendMode = 'add';
@@ -157,12 +167,9 @@ export class SlotCabinet {
       this.wisps.push({ sprite, life: 0, maxLife: 1, vx: 0, vy: 0, active: false });
     }
 
-    this.back.addChild(this.plate, this.glow, this.steamBack);
-    this.steamBack.addChild(this.steamBackMask);
-    this.steamBack.mask = this.steamBackMask;
-
-    this.front.addChild(
-      this.lattice,
+    this.shell.eventMode = 'none';
+    this.shellMask.eventMode = 'none';
+    this.shell.addChild(
       this.rails.top,
       this.rails.bottom,
       this.rails.left,
@@ -175,8 +182,14 @@ export class SlotCabinet {
       gearMedium,
       gearSmall,
       gearLarge,
-      this.steamFront,
     );
+    this.shell.mask = this.shellMask;
+
+    this.back.addChild(this.plate, this.glow, this.steamBack, this.consolePlate);
+    this.steamBack.addChild(this.steamBackMask);
+    this.steamBack.mask = this.steamBackMask;
+
+    this.front.addChild(this.lattice, this.shell, this.shellMask, this.consoleLip, this.steamFront);
 
     if (typeof window !== 'undefined' && window.matchMedia) {
       this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -218,9 +231,10 @@ export class SlotCabinet {
   }
 
   layout(totalW: number, totalH: number, opening: CabinetRect, grid: SlotCabinetGrid): void {
-    const short = Math.min(totalW, totalH);
-    placeCabinetWindow(this.plate, this.glow, this.steamBackMask, totalW, opening);
-    placeCabinetShell(this.corners, this.rails, totalW, totalH, short);
+    const frameH = cabinetFrameHeight(totalH);
+    const short = Math.min(totalW, frameH);
+    placeCabinetWindow(this.plate, this.glow, this.steamBackMask, totalW, cabinetWell(totalW, totalH));
+    placeCabinetShell(this.corners, this.rails, totalW, totalH, frameH, short);
     placeCabinetOrnaments(
       this.gears.map((gear) => gear.sprite),
       this.gauges,
@@ -228,16 +242,26 @@ export class SlotCabinet {
       this.vent,
       this.pipes,
       totalW,
-      totalH,
+      frameH,
       short,
     );
+    placeCabinetConsole(this.consolePlate, this.consoleLip, totalW, totalH, frameH);
+    this.clipShellToOpening(totalW, totalH, opening);
     placeCabinetLattice(this.lattice, this.dividerH, this.dividerV, this.rivetTex, grid);
     this.spawns = [
-      { x: totalW * 0.5, y: totalH - short * 0.05, front: true },
-      { x: totalW * 0.3, y: short * 0.06, front: true },
-      { x: totalW * 0.7, y: short * 0.06, front: true },
-      { x: opening.x + opening.w * 0.5, y: opening.y + opening.h - 8, front: false },
+      { x: totalW * 0.5, y: frameH - short * 0.04, front: true },
+      { x: totalW * 0.3, y: short * 0.05, front: true },
+      { x: totalW * 0.7, y: short * 0.05, front: true },
     ];
+  }
+
+  private clipShellToOpening(totalW: number, totalH: number, opening: CabinetRect): void {
+    const mask = this.shellMask;
+    mask.clear();
+    mask.rect(0, 0, totalW, totalH);
+    mask.fill({ color: 0xffffff });
+    mask.rect(opening.x, opening.y, opening.w, opening.h);
+    mask.cut();
   }
 
   tick(timeSec: number, dtSec: number): void {

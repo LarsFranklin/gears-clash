@@ -401,11 +401,11 @@ export class GearsClashGame {
       this.bonusOverlay = new BonusOverlayController();
       this.bonusOverlay.mount(frameInner);
       frame.appendChild(frameInner);
-      gameCenter.appendChild(frame);
 
       const deck = document.createElement('div');
       deck.className = 'gc-machine-deck';
-      gameCenter.appendChild(deck);
+      frame.appendChild(deck);
+      gameCenter.appendChild(frame);
 
       this.hud = new HudController();
       this.hud.mount(deck);

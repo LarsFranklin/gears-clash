@@ -70,6 +70,7 @@ export class EffectsLayer {
   private gridH = 400;
   private cellSize = 76;
   private gap = 8;
+  private rowPitch = 78;
   private reelCount = 5;
   private reducedMotion = false;
 
@@ -110,9 +111,11 @@ export class EffectsLayer {
     reelCount: number,
     gridW: number,
     gridH: number,
+    rowPitch = cellSize + ROW_GAP,
   ): void {
     this.cellSize = cellSize;
     this.gap = gap;
+    this.rowPitch = rowPitch;
     this.reelCount = reelCount;
     this.gridW = gridW;
     this.gridH = gridH;
@@ -258,7 +261,7 @@ export class EffectsLayer {
 
   spawnSymbolBurst(reelIndex: number, rowIndex: number, count = 8): void {
     const cx = reelIndex * (this.cellSize + this.gap) + this.cellSize / 2;
-    const pitch = this.cellSize + ROW_GAP;
+    const pitch = this.rowPitch;
     const cy = rowIndex * pitch + pitch / 2;
     this.spawnBurst(cx, cy, count, 0xffd860);
   }
@@ -397,7 +400,7 @@ export class EffectsLayer {
     const pulse = this.reducedMotion
       ? 1
       : Math.sin(this.bonusPulseMs * 0.005) * 0.35 + 0.75;
-    const pitch = this.cellSize + ROW_GAP;
+    const pitch = this.rowPitch;
 
     if (this.fullReelWild) {
       const { reel, multiplier } = this.fullReelWild;

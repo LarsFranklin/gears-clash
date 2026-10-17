@@ -337,7 +337,7 @@ export class WinPresentation {
   private toCellCenter(reel: number, row: number): Point | null {
     const { grid } = this.stage.config;
     if (reel < 0 || row < 0 || reel >= grid.reels || row >= grid.rows) return null;
-    const pitch = this.stage.cellSize + ROW_GAP;
+    const pitch = this.stage.rowPitch;
     return {
       x: reel * (this.stage.cellSize + this.stage.gap) + this.stage.cellSize / 2,
       y: row * pitch + pitch / 2,

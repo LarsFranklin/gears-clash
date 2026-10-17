@@ -1,4 +1,4 @@
-/* Maschinen-Deck: Werte und Tasten gehören zum Schrank, nicht zur Webseite. */
+/* Werte und Tasten liegen im unteren Streifen des Schrank-Canvas. */
 
 .gc-slot--machine {
   max-width: min(100%, 880px);
@@ -15,64 +15,84 @@
 }
 
 .gc-slot--machine .gc-slot__center {
-  display: flex;
-  flex-direction: column;
+  display: block;
   filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.55));
 }
 
+.gc-slot--machine .gc-frame {
+  position: relative;
+}
+
 .gc-machine-deck {
+  position: absolute;
+  z-index: 4;
+  left: 7%;
+  right: 7%;
+  bottom: 1.4%;
+  height: 16.5%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  margin-top: -2px;
-  padding: 0.55rem 0.85rem 0.7rem;
-  border: 2px solid #8d6a34;
-  border-top: 1px solid #5a4320;
-  border-radius: 0 0 18px 18px;
-  background:
-    linear-gradient(180deg, rgba(88, 64, 32, 0.96) 0%, rgba(36, 26, 14, 0.98) 28%, #120e0b 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 214, 140, 0.28),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.35);
+  justify-content: center;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0.15rem 0.4rem 0.2rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.gc-machine-deck .gc-hud,
+.gc-machine-deck .gc-controls-bar,
+.gc-machine-deck .gc-slot__spin-row,
+.gc-machine-deck .gc-button,
+.gc-machine-deck .gc-controls-bar__btn,
+.gc-machine-deck .gc-controls-bar__toggle,
+.gc-machine-deck .gc-controls-bar__auto-select {
+  pointer-events: auto;
 }
 
 .gc-machine-deck .gc-hud {
   width: 100%;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .gc-machine-deck .gc-hud-panel {
   flex: 1 1 0;
   min-width: 0;
   max-width: none;
-  padding: 0.32rem 0.55rem 0.38rem;
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(18, 14, 10, 0.72) 0%, rgba(8, 7, 6, 0.88) 100%);
-  border: 1px solid rgba(201, 162, 39, 0.38);
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.45);
+  padding: 0.18rem 0.4rem 0.22rem;
+  border-radius: 6px;
+  background: rgba(8, 6, 4, 0.55);
+  border: 1px solid rgba(201, 162, 39, 0.28);
+  box-shadow: none;
 }
 
 .gc-machine-deck .gc-hud-panel__label {
-  color: rgba(232, 196, 120, 0.72);
+  font-size: 0.55rem;
+  color: rgba(232, 196, 120, 0.78);
 }
 
 .gc-machine-deck .gc-hud-panel__value {
+  font-size: clamp(0.85rem, 2vw, 1.05rem);
   color: #fff4d2;
   text-shadow: 0 0 12px rgba(255, 170, 60, 0.25);
 }
 
 .gc-machine-deck .gc-slot__spin-row {
-  padding: 0.1rem 0 0;
+  padding: 0;
 }
 
 .gc-machine-deck .gc-button--spin {
-  width: clamp(3.6rem, 10vw, 4.75rem);
-  height: clamp(3.6rem, 10vw, 4.75rem);
+  width: clamp(2.8rem, 7vw, 3.6rem);
+  height: clamp(2.8rem, 7vw, 3.6rem);
+  font-size: 0.72rem;
 }
 
 .gc-machine-deck .gc-controls-bar {
   width: 100%;
   padding: 0;
-  gap: 0.35rem;
+  gap: 0.28rem;
 }

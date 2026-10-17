@@ -3,10 +3,16 @@
  * Die Innenöffnung liegt innerhalb der Eckblöcke, damit die Symbole frei bleiben.
  */
 
-export const CABINET_ASPECT = 1.16;
+export const CABINET_FRAME_ASPECT = 1.16;
 
-/** Eck-Sprite relativ zur kürzeren Canvas-Kante. */
-export const CABINET_CORNER_OF_SHORT = 0.5;
+/** Unterer Konsolenstreifen, Anteil der gesamten Canvas-Höhe. */
+export const CABINET_CONSOLE_FRAC = 0.2;
+
+/** Gesamt-Canvas: Rahmen plus eingebaute Konsole. */
+export const CABINET_ASPECT = CABINET_FRAME_ASPECT * (1 - CABINET_CONSOLE_FRAC);
+
+/** Eck-Sprite relativ zur kürzeren Rahmenkante, klein genug, dass die Ecken die Symbole nicht zudecken. */
+export const CABINET_CORNER_OF_SHORT = 0.36;
 
 export const CABINET_ASSETS = {
   cornerTl: '/assets/cabinet/corner_tl.png',
@@ -53,23 +59,33 @@ export interface SlotCabinetGrid {
   offsetX: number;
   offsetY: number;
   rowGap: number;
+  rowPitch: number;
 }
 
-export function cabinetCanvasSize(rawWidth: number): { totalW: number; totalH: number } {
+export function cabinetCanvasSize(rawWidth: number): { totalW: number; totalH: number; frameH: number } {
   const totalW = Math.max(260, Math.floor(rawWidth));
-  const totalH = Math.max(220, Math.ceil(totalW / CABINET_ASPECT));
-  return { totalW, totalH };
+  const frameH = Math.max(180, Math.ceil(totalW / CABINET_FRAME_ASPECT));
+  const totalH = Math.max(frameH + 80, Math.ceil(frameH / (1 - CABINET_CONSOLE_FRAC)));
+  return { totalW, totalH, frameH };
+}
+
+export function cabinetFrameHeight(totalH: number): number {
+  return Math.round(totalH * (1 - CABINET_CONSOLE_FRAC));
 }
 
 export function cabinetOpening(totalW: number, totalH: number): CabinetRect {
-  const top = Math.round(totalH * 0.09);
-  const bottom = Math.round(totalH * 0.085);
-  const span = Math.min(totalH - top - bottom, Math.round(totalW * 0.84));
-  const size = Math.max(1, span);
+  const frameH = cabinetFrameHeight(totalH);
+  const x = Math.round(totalW * 0.055);
+  const y = Math.round(frameH * 0.048);
+  const bottom = Math.round(frameH * 0.028);
   return {
-    x: Math.round((totalW - size) / 2),
-    y: top,
-    w: size,
-    h: size,
+    x,
+    y,
+    w: Math.max(1, totalW - x * 2),
+    h: Math.max(1, frameH - y - bottom),
   };
+}
+
+export function cabinetWell(totalW: number, totalH: number): CabinetRect {
+  return cabinetOpening(totalW, totalH);
 }

@@ -69,6 +69,7 @@ export function placeCabinetShell(
   rails: Record<'top' | 'bottom' | 'left' | 'right', NineSliceSprite>,
   totalW: number,
   totalH: number,
+  frameH: number,
   short: number,
 ): void {
   const corner = short * CABINET_CORNER_OF_SHORT;
@@ -84,16 +85,17 @@ export function placeCabinetShell(
     sprite.position.set(x, y);
   });
 
-  sizeRail(rails.top, totalW * 0.74, short * 0.085, 0.08, 0.06);
-  rails.top.position.set((totalW - rails.top.width) / 2, short * 0.006);
+  sizeRail(rails.top, totalW * 0.7, short * 0.07, 0.08, 0.06);
+  rails.top.position.set((totalW - rails.top.width) / 2, short * 0.004);
 
-  sizeRail(rails.bottom, totalW * 0.74, short * 0.085, 0.08, 0.06);
-  rails.bottom.position.set((totalW - rails.bottom.width) / 2, totalH - rails.bottom.height - short * 0.006);
+  sizeRail(rails.bottom, totalW * 0.7, short * 0.055, 0.08, 0.06);
+  rails.bottom.position.set((totalW - rails.bottom.width) / 2, frameH - rails.bottom.height * 0.35);
 
-  sizeRail(rails.left, short * 0.08, totalH * 0.74, 0.08, 0.1);
+  const sideH = totalH * 0.86;
+  sizeRail(rails.left, short * 0.065, sideH, 0.08, 0.1);
   rails.left.position.set(short * 0.004, (totalH - rails.left.height) / 2);
 
-  sizeRail(rails.right, short * 0.08, totalH * 0.74, 0.08, 0.1);
+  sizeRail(rails.right, short * 0.065, sideH, 0.08, 0.1);
   rails.right.position.set(totalW - rails.right.width - short * 0.004, (totalH - rails.right.height) / 2);
 }
 
@@ -104,35 +106,55 @@ export function placeCabinetOrnaments(
   vent: Sprite,
   pipes: Sprite[],
   totalW: number,
-  totalH: number,
+  frameH: number,
   short: number,
 ): void {
   const [large, medium, small] = gears;
-  fitUniform(large!, short * 0.2);
-  large!.position.set(totalW * 0.5, short * 0.078);
-  fitUniform(medium!, short * 0.09);
-  medium!.position.set(short * 0.085, totalH * 0.22);
-  fitUniform(small!, short * 0.068);
-  small!.position.set(totalW - short * 0.08, totalH * 0.78);
+  fitUniform(large!, short * 0.16);
+  large!.position.set(totalW * 0.5, short * 0.055);
+  fitUniform(medium!, short * 0.075);
+  medium!.position.set(short * 0.07, frameH * 0.2);
+  fitUniform(small!, short * 0.058);
+  small!.position.set(totalW - short * 0.065, frameH * 0.78);
 
-  const gaugeSize = short * 0.13;
-  const gaugeX = [short * 0.07, totalW - short * 0.07];
+  const gaugeSize = short * 0.1;
+  const gaugeX = [totalW * 0.03, totalW - totalW * 0.03];
   gauges.forEach((gauge, i) => {
     fitUniform(gauge, gaugeSize);
-    gauge.position.set(gaugeX[i]!, totalH * 0.5);
+    gauge.position.set(gaugeX[i]!, frameH * 0.5);
     const needle = needles[i]!;
     needle.position.copyFrom(gauge.position);
     needle.scale.set((gaugeSize * 0.7) / needle.texture.height);
   });
 
-  fitUniform(vent, short * 0.28);
-  vent.position.set(totalW * 0.5, totalH - short * 0.012);
+  fitUniform(vent, short * 0.22);
+  vent.position.set(totalW * 0.5, frameH - 2);
 
-  const pipeW = short * 0.16;
+  const pipeW = short * 0.13;
   pipes.forEach((pipe, i) => {
     pipe.scale.set(pipeW / pipe.texture.width);
-    pipe.position.set(i === 0 ? totalW * 0.3 : totalW * 0.7, short * 0.055);
+    pipe.position.set(i === 0 ? totalW * 0.28 : totalW * 0.72, short * 0.04);
   });
+}
+
+export function placeCabinetConsole(
+  plate: TilingSprite,
+  lip: Sprite,
+  totalW: number,
+  totalH: number,
+  frameH: number,
+): void {
+  plate.position.set(0, frameH - 6);
+  plate.width = totalW;
+  plate.height = totalH - frameH + 6;
+  const texW = Math.max(1, plate.texture.width);
+  const texH = Math.max(1, plate.texture.height);
+  plate.tileScale.set(totalW / texW, plate.height / texH);
+  plate.tilePosition.set(0, 0);
+
+  const lipScale = totalW / Math.max(1, lip.texture.width);
+  lip.scale.set(lipScale, Math.min(lipScale, 28 / Math.max(1, lip.texture.height)));
+  lip.position.set(0, frameH - lip.height * 0.45);
 }
 
 export function placeCabinetLattice(
@@ -145,10 +167,10 @@ export function placeCabinetLattice(
   for (const child of lattice.removeChildren()) child.destroy();
   const bar = Math.max(3, Math.round(grid.cellSize * 0.028));
   const gridW = grid.reels * grid.cellSize + (grid.reels - 1) * grid.gap;
-  const gridH = grid.rows * grid.cellSize + (grid.rows - 1) * grid.rowGap;
+  const gridH = grid.rows * grid.rowPitch;
 
   for (let r = 1; r < grid.rows; r++) {
-    const y = grid.offsetY + r * grid.cellSize + (r - 1) * grid.rowGap + grid.rowGap / 2;
+    const y = grid.offsetY + r * grid.rowPitch;
     const divider = new Sprite(dividerH);
     divider.anchor.set(0, 0.5);
     divider.position.set(grid.offsetX, y);
@@ -169,7 +191,7 @@ export function placeCabinetLattice(
   for (let c = 1; c < grid.reels; c++) {
     for (let r = 1; r < grid.rows; r++) {
       const x = grid.offsetX + c * grid.cellSize + (c - 1) * grid.gap + grid.gap / 2;
-      const y = grid.offsetY + r * grid.cellSize + (r - 1) * grid.rowGap + grid.rowGap / 2;
+      const y = grid.offsetY + r * grid.rowPitch;
       const rivet = new Sprite(rivetTex);
       rivet.anchor.set(0.5);
       rivet.position.set(x, y);

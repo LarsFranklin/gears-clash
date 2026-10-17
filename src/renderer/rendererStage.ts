@@ -28,6 +28,7 @@ export interface RendererStage {
   readonly highlightRowsByReel: Map<number, Set<number>>;
   readonly bonusRevealRowsByReel: Map<number, Set<number>>;
   readonly cellSize: number;
+  readonly rowPitch: number;
   readonly gap: number;
   readonly currentBet: number;
   /** Laufende Spin-Generation — jede Animation bricht ab, wenn sie sich ändert. */

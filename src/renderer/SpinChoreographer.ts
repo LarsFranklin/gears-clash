@@ -83,7 +83,7 @@ export class SpinChoreographer {
     const { config, reels, effects } = this.stage;
     const reelsN = config.grid.reels;
     const baseStop = params.spinDurationMs * 0.55;
-    const pitch = this.stage.cellSize + ROW_GAP;
+    const pitch = this.stage.rowPitch;
     const extraRows = params.reelApproachExtraRows;
 
     await this.playAnticipation(token, 80, 6);
@@ -205,7 +205,7 @@ export class SpinChoreographer {
   ): Promise<void> {
     const { config, reels, effects } = this.stage;
     const reelsN = config.grid.reels;
-    const pitch = this.stage.cellSize + ROW_GAP;
+    const pitch = this.stage.rowPitch;
     const tStop = params.reelSequentialDurationMs;
     const bounceWindow = 300;
     const extraRows = params.reelApproachExtraRows;

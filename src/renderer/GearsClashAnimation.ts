@@ -77,9 +77,11 @@ export class GearsClashAnimation {
     colGap: number,
     gridOriginX: number,
     gridOriginY: number,
+    rowPitch = cellSize + ROW_GAP,
   ): void {
     this.cellSize = cellSize;
     this.colGap = colGap;
+    this.explicitRowPitch = rowPitch;
     this.originX = gridOriginX;
     this.originY = gridOriginY;
     this.container.position.set(gridOriginX, gridOriginY);
@@ -92,8 +94,10 @@ export class GearsClashAnimation {
     return this.container;
   }
 
+  private explicitRowPitch = 0;
+
   private get rowPitch(): number {
-    return this.cellSize + ROW_GAP;
+    return this.explicitRowPitch || this.cellSize + ROW_GAP;
   }
 
   private get gridHeight(): number {
@@ -125,10 +129,10 @@ export class GearsClashAnimation {
     const h = this.gridHeight;
 
     this.overlay.clear();
-    this.overlay.rect(0, 0, this.config.grid.reels * colPitch - this.colGap, h);
-    this.overlay.fill({ color: 0x05070c, alpha: 0.62 });
-    this.overlay.roundRect(x - 4, 0, this.cellSize + 8, h, 10);
-    this.overlay.stroke({ color: COLOR_ACCENT, width: 3, alpha: 0.9 });
+    this.overlay.roundRect(x - 3, 0, this.cellSize + 6, h, 12);
+    this.overlay.stroke({ color: COLOR_ACCENT, width: 3, alpha: 0.95 });
+    this.overlay.roundRect(x + 2, 4, this.cellSize - 4, h - 8, 8);
+    this.overlay.stroke({ color: 0xffe2a0, width: 1, alpha: 0.45 });
 
     this.buildGear(this.gearA, payload.gearA.multiplier, COLOR_GEAR_A);
     this.buildGear(this.gearB, payload.gearB.multiplier, COLOR_GEAR_B);
@@ -285,7 +289,8 @@ export class GearsClashAnimation {
     const h = this.cellSize * 0.62;
     const plate = new Graphics();
     plate.roundRect(-w / 2, -h / 2, w, h, 10);
-    plate.fill({ color: 0x120e08, alpha: 0.92 });
+    plate.fill({ color: 0x4a3418, alpha: 0.94 });
+    plate.stroke({ color: 0xf0d080, width: 2, alpha: 0.9 });
     plate.stroke({ color, width: 3 });
     this.winnerBadge.addChild(plate);
 

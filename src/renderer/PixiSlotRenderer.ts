@@ -42,6 +42,7 @@ export class PixiSlotRenderer {
   private resizeObserver: ResizeObserver | null = null;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private cellSize = 76;
+  private rowPitch = 78;
   private gap = 8;
   private pad = 20;
   private lastStops: string[][] | null = null;
@@ -118,6 +119,9 @@ export class PixiSlotRenderer {
       },
       get cellSize() {
         return renderer.cellSize;
+      },
+      get rowPitch() {
+        return renderer.rowPitch;
       },
       get gap() {
         return renderer.gap;
@@ -199,6 +203,7 @@ export class PixiSlotRenderer {
       layout.gap,
       layout.offsetX,
       layout.offsetY,
+      layout.rowPitch,
     );
 
     this.tickerFn = () => {
@@ -465,6 +470,7 @@ export class PixiSlotRenderer {
         layout.gap,
         layout.offsetX,
         layout.offsetY,
+        layout.rowPitch,
       );
     }
     this.buildReels(layout);
@@ -476,6 +482,8 @@ export class PixiSlotRenderer {
     totalW: number;
     totalH: number;
     cellSize: number;
+    iconSize: number;
+    rowPitch: number;
     gap: number;
     pad: number;
     offsetX: number;
@@ -522,6 +530,8 @@ export class PixiSlotRenderer {
         gridInnerW: totalW,
         gridInnerH: totalH,
         gridMaskRadius: Math.max(6, Math.floor(cellSize * 0.1)),
+        iconSize: cellSize,
+        rowPitch: cellSize + ROW_GAP,
       };
     }
 
@@ -532,37 +542,35 @@ export class PixiSlotRenderer {
     const innerW = opening.w;
     const innerH = opening.h;
 
-    const gap = 2;
-    const cellFromW = (innerW - gap * (reels - 1)) / reels;
-    const cellFromH = (innerH - ROW_GAP * (rows - 1)) / rows;
-    let cellSize = Math.floor(Math.min(cellFromW, cellFromH));
-    cellSize = Math.max(40, cellSize);
-    const pitch = cellSize + ROW_GAP;
-    const actualGridW = reels * cellSize + (reels - 1) * gap;
-    const actualGridH = rows * pitch;
-    const offsetX = innerX + Math.floor((innerW - actualGridW) / 2);
-    const offsetY = innerY + Math.floor((innerH - actualGridH) / 2);
-    const gridMaskRadius = Math.max(3, Math.min(12, Math.floor(cellSize * 0.09)));
+    const gap = 4;
+    const cellW = Math.max(40, Math.floor((innerW - gap * (reels - 1)) / reels));
+    const rowPitch = Math.max(44, Math.floor(innerH / rows));
+    const icon = Math.max(32, Math.min(cellW, rowPitch - ROW_GAP));
+    const actualGridW = reels * cellW + (reels - 1) * gap;
+    const actualGridH = rows * rowPitch;
 
     return {
       totalW,
       totalH,
-      cellSize,
+      cellSize: cellW,
+      iconSize: icon,
+      rowPitch,
       gap,
       pad: 0,
-      offsetX,
-      offsetY,
+      offsetX: innerX + Math.floor((innerW - actualGridW) / 2),
+      offsetY: innerY + Math.floor((innerH - actualGridH) / 2),
       visibleH: actualGridH,
       gridInnerX: innerX,
       gridInnerY: innerY,
       gridInnerW: innerW,
       gridInnerH: innerH,
-      gridMaskRadius,
+      gridMaskRadius: Math.max(3, Math.min(12, Math.floor(icon * 0.09))),
     };
   }
 
   private applyMetrics(layout: ReturnType<typeof this.computeLayout>): void {
     this.cellSize = layout.cellSize;
+    this.rowPitch = layout.rowPitch;
     this.gap = layout.gap;
     this.pad = layout.pad;
     if (this.parentEl) {
@@ -612,6 +620,7 @@ export class PixiSlotRenderer {
           offsetX: layout.offsetX,
           offsetY: layout.offsetY,
           rowGap: ROW_GAP,
+          rowPitch: layout.rowPitch,
         },
       );
       this.root.addChild(this.cabinet.back);
@@ -651,13 +660,13 @@ export class PixiSlotRenderer {
     for (let c = 0; c < reels; c++) {
       const col = new ReelColumn(this.config, this.registry);
       col.setSymbolTextures(this.symbolTextureMap);
-      col.layout(c, layout.cellSize, layout.gap, visibleH);
+      col.layout(c, layout.iconSize, layout.gap, visibleH, layout.cellSize, layout.rowPitch);
       gridLayer.addChild(col.view);
       this.reels.push(col);
     }
 
     const effects = new EffectsLayer();
-    effects.layout(layout.cellSize, layout.gap, reels, gridW, visibleH);
+    effects.layout(layout.cellSize, layout.gap, reels, gridW, visibleH, layout.rowPitch);
     effects.view.zIndex = 15;
     gridLayer.addChild(effects.view);
     this.effectsLayer = effects;
@@ -685,6 +694,7 @@ export class PixiSlotRenderer {
         layout.gap,
         layout.offsetX,
         layout.offsetY,
+        layout.rowPitch,
       );
     }
   }
