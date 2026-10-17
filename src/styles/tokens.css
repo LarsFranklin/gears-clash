@@ -1,0 +1,93 @@
+/*
+ * Design-Token-Ebene — Gunmetal, Kupfer, Warm-Gold plus die drei Bonus-Akzente.
+ *
+ * Tokens hängen an `.gc-slot` und `.gc-demo-page`, nicht an `:root`: das Package
+ * darf ausserhalb seines Containers nichts setzen (`ui-css-isolation`).
+ * Bonus-Theming ist damit ein Attribut-Umschalter (`data-bonus-id` / `data-bonus`)
+ * statt kopierter Regelsätze.
+ */
+.gc-slot,
+.gc-demo-page {
+  /* Flächen */
+  --gc-surface-0: #08080c;
+  --gc-surface-1: #12121a;
+  --gc-surface-2: rgba(20, 18, 24, 0.92);
+  --gc-surface-sunken: rgba(8, 8, 12, 0.72);
+
+  /* Linien und Text */
+  --gc-line: rgba(201, 162, 39, 0.22);
+  --gc-line-strong: rgba(201, 162, 39, 0.55);
+  --gc-text: #e4e4ec;
+  --gc-text-muted: rgba(200, 200, 220, 0.55);
+  --gc-text-dim: rgba(180, 180, 200, 0.38);
+
+  /* Markenfarben */
+  --gc-gold: #c9a227;
+  --gc-gold-bright: #f0d878;
+  --gc-copper: #b87333;
+  --gc-cyan: #58d0f0;
+
+  /* Bonus-Akzent — wird pro Modus überschrieben */
+  --gc-accent: var(--gc-gold);
+  --gc-accent-bright: var(--gc-gold-bright);
+  --gc-accent-glow: rgba(201, 162, 39, 0.25);
+  --gc-accent-border: rgba(201, 162, 39, 0.55);
+
+  /* Abstände */
+  --gc-space-1: 0.25rem;
+  --gc-space-2: 0.5rem;
+  --gc-space-3: 0.75rem;
+  --gc-space-4: 1rem;
+  --gc-space-5: 1.5rem;
+
+  /* Radien */
+  --gc-radius-sm: 6px;
+  --gc-radius-md: 10px;
+  --gc-radius-lg: 14px;
+  --gc-radius-pill: 999px;
+
+  /* Glow-Stufen */
+  --gc-glow-1: 0 0 15px var(--gc-accent-glow);
+  --gc-glow-2: 0 0 28px var(--gc-accent-glow);
+  --gc-glow-3: 0 0 45px var(--gc-accent-glow);
+  --gc-shadow-card:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 16px 48px rgba(0, 0, 0, 0.55);
+}
+
+/* --- Bonus-Akzente: eine Quelle für Overlay, Session-UI und Info-Karten --- */
+.gc-slot [data-bonus-id='gears_clash'],
+.gc-slot [data-bonus='gears_clash'],
+.gc-demo-page [data-bonus-id='gears_clash'] {
+  --gc-accent: #e88820;
+  --gc-accent-bright: #ffb060;
+  --gc-accent-glow: rgba(232, 136, 32, 0.28);
+  --gc-accent-border: rgba(232, 136, 32, 0.6);
+  --gc-accent-surface-top: rgba(46, 30, 12, 0.97);
+  --gc-accent-surface-bottom: rgba(18, 11, 5, 0.98);
+  --gc-accent-surface-raised: rgba(96, 58, 14, 0.92);
+}
+
+.gc-slot [data-bonus-id='heist_run'],
+.gc-slot [data-bonus='heist_run'],
+.gc-demo-page [data-bonus-id='heist_run'] {
+  --gc-accent: #48c8f0;
+  --gc-accent-bright: #a8e8ff;
+  --gc-accent-glow: rgba(72, 200, 240, 0.26);
+  --gc-accent-border: rgba(72, 200, 240, 0.6);
+  --gc-accent-surface-top: rgba(10, 42, 62, 0.97);
+  --gc-accent-surface-bottom: rgba(5, 18, 30, 0.98);
+  --gc-accent-surface-raised: rgba(12, 62, 88, 0.92);
+}
+
+.gc-slot [data-bonus-id='deadlock_mode'],
+.gc-slot [data-bonus='deadlock_mode'],
+.gc-demo-page [data-bonus-id='deadlock_mode'] {
+  --gc-accent: #d04088;
+  --gc-accent-bright: #ff90c0;
+  --gc-accent-glow: rgba(208, 64, 136, 0.26);
+  --gc-accent-border: rgba(208, 64, 136, 0.6);
+  --gc-accent-surface-top: rgba(52, 12, 48, 0.97);
+  --gc-accent-surface-bottom: rgba(26, 6, 20, 0.98);
+  --gc-accent-surface-raised: rgba(84, 20, 62, 0.92);
+}

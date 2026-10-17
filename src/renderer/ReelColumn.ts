@@ -157,18 +157,16 @@ export class SymbolSlot extends Container {
     }
 
     this.glow.clear();
-    if (
-      emphasizeSpecial &&
-      (def?.kind === 'bonus' || def?.kind === 'wild') &&
-      !opts.frozen
-    ) {
-      const throb = 0.35 + 0.65 * Math.sin(timeSec * 6);
+    if (emphasizeSpecial && !opts.frozen) {
+      /** Wild/Bonus pulsieren kräftiger; normale Gewinnsymbole bekommen denselben Effekt dezenter. */
+      const special = def?.kind === 'bonus' || def?.kind === 'wild';
+      const throb = 0.35 + 0.65 * Math.sin(timeSec * (special ? 6 : 4.2));
       const glowColor = pal.glowColor ?? pal.rimStroke;
       this.glow.roundRect(0, 0, cs, cs, radius);
       this.glow.stroke({
-        width: 2 + throb * 1.5,
+        width: (special ? 2 : 1.2) + throb * (special ? 1.5 : 0.9),
         color: glowColor,
-        alpha: 0.35 + throb * 0.4,
+        alpha: (special ? 0.35 : 0.2) + throb * (special ? 0.4 : 0.26),
       });
     }
 
@@ -386,7 +384,14 @@ export class ReelColumn {
       frozen: boolean;
     },
   ): void {
-    for (let i = 0; i < this.slots.length; i++) {
+    /**
+     * Nur die Slots im Maskenfenster (plus je eine Pufferzeile) neu zeichnen —
+     * der Rest des Strips liegt außerhalb der Maske und kostet sonst jeden Frame.
+     */
+    const first = Math.max(0, Math.floor(-this.strip.y / this.pitch) - 1);
+    const last = Math.min(this.slots.length - 1, first + this.rows + 1);
+
+    for (let i = first; i <= last; i++) {
       const id = this.stripSymbols[i]!;
       const row = i - this.focusIndex;
       const winH =

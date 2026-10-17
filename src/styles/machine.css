@@ -1,0 +1,78 @@
+/* Maschinen-Deck: Werte und Tasten gehören zum Schrank, nicht zur Webseite. */
+
+.gc-slot--machine {
+  max-width: min(100%, 880px);
+  gap: 0;
+  padding: 0;
+}
+
+.gc-slot--machine[data-gc-layout] .gc-desktop-chrome {
+  display: none;
+}
+
+.gc-slot--machine .gc-slot__desktop-stage {
+  display: block;
+}
+
+.gc-slot--machine .gc-slot__center {
+  display: flex;
+  flex-direction: column;
+  filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.55));
+}
+
+.gc-machine-deck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: -2px;
+  padding: 0.55rem 0.85rem 0.7rem;
+  border: 2px solid #8d6a34;
+  border-top: 1px solid #5a4320;
+  border-radius: 0 0 18px 18px;
+  background:
+    linear-gradient(180deg, rgba(88, 64, 32, 0.96) 0%, rgba(36, 26, 14, 0.98) 28%, #120e0b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 214, 140, 0.28),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.35);
+}
+
+.gc-machine-deck .gc-hud {
+  width: 100%;
+  gap: 0.4rem;
+}
+
+.gc-machine-deck .gc-hud-panel {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  padding: 0.32rem 0.55rem 0.38rem;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(18, 14, 10, 0.72) 0%, rgba(8, 7, 6, 0.88) 100%);
+  border: 1px solid rgba(201, 162, 39, 0.38);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.45);
+}
+
+.gc-machine-deck .gc-hud-panel__label {
+  color: rgba(232, 196, 120, 0.72);
+}
+
+.gc-machine-deck .gc-hud-panel__value {
+  color: #fff4d2;
+  text-shadow: 0 0 12px rgba(255, 170, 60, 0.25);
+}
+
+.gc-machine-deck .gc-slot__spin-row {
+  padding: 0.1rem 0 0;
+}
+
+.gc-machine-deck .gc-button--spin {
+  width: clamp(3.6rem, 10vw, 4.75rem);
+  height: clamp(3.6rem, 10vw, 4.75rem);
+}
+
+.gc-machine-deck .gc-controls-bar {
+  width: 100%;
+  padding: 0;
+  gap: 0.35rem;
+}

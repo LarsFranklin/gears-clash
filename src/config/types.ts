@@ -84,6 +84,11 @@ export interface SlotPaylineDefinition {
   name?: string;
   /** Visuelle Kategorie für Info-Modal-Darstellung. */
   type?: PaylineType;
+  /**
+   * Linie abschaltbar (Default `true`). Deaktivierte Linien werden weder
+   * ausgewertet noch im Info-Modal gezeigt.
+   */
+  enabled?: boolean;
   /** Pro Walze eine Zeilenindexierung (Länge = `grid.reels`, 0-basiert). */
   rows: number[];
 }
@@ -249,19 +254,71 @@ export interface DeadlockModePayload {
   remainingSpins?: number;
 }
 
+/**
+ * Session-Buchhaltung, die für alle Bonus-Modi gleich aussieht — Server-final.
+ *
+ * Der Client rechnet daraus nichts aus, er zeigt die Werte an und leitet daraus
+ * die Events `bonus:spin`, `bonus:retrigger` und `bonus:summary` ab.
+ */
+export interface BonusSessionMeta {
+  /** Verbleibende Runden nach dieser Antwort. */
+  remainingSpins: number;
+  /** Gesamtbudget inklusive aller bisherigen Retrigger. */
+  totalSpins: number;
+  /** Bereits gespielte Runden. */
+  roundsPlayed: number;
+  /** In dieser Runde zusätzlich gewährte Spins; fehlt oder 0, wenn kein Retrigger. */
+  retriggerAwarded?: number;
+  /** Bonusbank: Summe aller Session-Gewinne bis inklusive dieser Runde. */
+  bankedWin: number;
+  /** True in der Antwort, die die Session abschließt — hier erfolgt die Gutschrift. */
+  complete: boolean;
+}
+
 export type BonusSessionPayload =
-  | { type: 'gears_clash'; payload: GearsClashPayload }
-  | { type: 'heist_run'; payload: HeistRunPayload }
-  | { type: 'deadlock_mode'; payload: DeadlockModePayload };
+  | {
+      type: 'gears_clash';
+      payload: GearsClashPayload;
+      session?: BonusSessionMeta;
+    }
+  | { type: 'heist_run'; payload: HeistRunPayload; session?: BonusSessionMeta }
+  | {
+      type: 'deadlock_mode';
+      payload: DeadlockModePayload;
+      session?: BonusSessionMeta;
+    };
 
 export type GameEventName =
   | 'spin:start'
   | 'spin:end'
   | 'bonus:start'
+  | 'bonus:spin'
+  | 'bonus:retrigger'
+  | 'bonus:summary'
   | 'bonus:end'
   | 'balance:update'
   | 'error'
   | 'ready';
+
+/** Payload von `bonus:retrigger` — zusätzliche Free Spins innerhalb einer Session. */
+export interface BonusRetriggerEvent {
+  bonusId: BonusId;
+  /** Gewährte zusätzliche Spins (Produktregel: +4 pro Ereignis). */
+  awarded: number;
+  /** Verbleibende Spins nach dem Retrigger. */
+  remaining: number;
+}
+
+/** Payload von `bonus:summary` — Abschluss einer Bonus-Session vor der Gutschrift. */
+export interface BonusSummaryEvent {
+  bonusId: BonusId;
+  /** Summe aller Gewinne der Session (Bonusbank). */
+  totalWin: number;
+  /** Anzahl gespielter Runden inklusive Retrigger. */
+  roundsPlayed: number;
+  /** Kontostand nach Gutschrift der Bonusbank. */
+  balanceAfter: number;
+}
 
 export interface HostAdapter {
   onReady?: () => void;

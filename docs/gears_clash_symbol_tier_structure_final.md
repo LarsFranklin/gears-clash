@@ -115,9 +115,13 @@ Schwere Industriemutter.
 
 ---
 
-## LOW 03 — Rivet
+## LOW 03 — Fuse
 
-Massive genietete Verbindung.
+Industrielle Schmelzsicherung (Symbol-ID `fuse`).
+
+> Frühere Entwürfe nannten dieses Symbol *Rivet*. Umgesetzt sind ID, Asset
+> (`/assets/symbols/fuse.png`) und Procedural-Fallback als **Fuse** — diese
+> Bezeichnung gilt.
 
 ---
 

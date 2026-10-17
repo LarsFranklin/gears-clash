@@ -53,16 +53,18 @@ http://localhost:5173?http=1
 }
 ```
 
+✅ **Client-Animation** (`src/renderer/GearsClashAnimation.ts`, eingebunden über
+`PixiSlotRenderer.playGearsClashAnimationAsync()`):
+- Battle-Animation (VS-Box mit zwei Gears)
+- Funkeffekte während des Kampfs
+- Winner-Reveal mit Multiplier-Badge
+- Full-Reel-Wild-Expansion
+
 ### 4. Was fehlt noch?
 
-⏳ **Client-Animation** (in Arbeit):
-- Battle-Animation (VS-Box mit zwei Gears)
-- Funkeffekte während Kampf
-- Winner-Reveal
-- Full-Reel-Wild Expansion
-- Multiplier-Badge Anzeige
-
-Die Animation-Klasse existiert bereits (`src/renderer/GearsClashAnimation.ts`), muss nur noch vollständig in den Renderer integriert werden.
+- Mehrere VS-Symbole pro Spin: ausgewertet wird aktuell nur das erste.
+- Eigene Sound-Assets für `gears_clash_intro`, `gears_clash_battle`,
+  `gears_clash_expand` — die Hooks feuern bereits.
 
 ### 5. Demo-Szenarien
 
@@ -83,10 +85,9 @@ npm run dev:server
 
 ### 7. Nächste Schritte
 
-1. **Animation fertigstellen**: `playGearsClashAnimation()` in `PixiSlotRenderer`
-2. **Sounds hinzufügen**: `gears_clash_intro`, `gears_clash_battle`, `gears_clash_expand`
-3. **Mehrere VS-Symbole**: Aktuell wird nur das erste VS-Symbol ausgewertet
-4. **Testing**: Automatisierte Tests für Server-Logic
+1. **Sound-Assets liefern**: `gears_clash_intro`, `gears_clash_battle`, `gears_clash_expand`
+2. **Mehrere VS-Symbole**: Aktuell wird nur das erste VS-Symbol ausgewertet
+3. **Testing**: Automatisierte Tests für die Server-Logik
 
 ## Dateistruktur
 

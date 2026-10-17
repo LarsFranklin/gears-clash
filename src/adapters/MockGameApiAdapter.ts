@@ -2,26 +2,35 @@ import { defaultGameConfig } from '../config/defaultGameConfig';
 import type {
   BonusId,
   BonusSessionPayload,
-  DeadlockModePayload,
   GameConfig,
-  GearsClashPayload,
-  HeistRunPayload,
-  HeistRunStickyWild,
   SpinRequest,
   SpinResult,
 } from '../config/types';
 import { countBonusScatterOfTypeFullGrid } from '../core/scatterAnticipation';
 import { evaluateDemoBaseSpin } from '../core/slotEvaluation';
+import type { DemoSpinEvaluation } from '../core/slotEvaluation';
 import {
   buildDemoReelStops,
   isDemoSpinScenarioId,
 } from '../config/demoSpinPresets';
-import { pickWeightedSymbolId } from '../util/pickWeightedSymbolId';
-import { mulberry32 } from '../util/random';
 import type { GameApiAdapter } from './GameApiAdapter';
-import { MOCK_DEADLOCK_DEMO_SEQUENCE } from './mockDeadlockDemoSequence';
-
-const MOCK_EXTRA_FREESPINS_PER_SCATTER_ABOVE_MIN = 2;
+import {
+  applyStickyWilds,
+  buildIsolatedSymbolPool,
+  DEADLOCK_START_LIVES,
+  firstWildSymbolId,
+  GEARS_CLASH_SESSION_SPINS,
+  initialFreeSpinsForScatters,
+  injectGuaranteedWilds,
+  MockBonusSession,
+  rollClashOutcome,
+  rollDeadlockCollectionRound,
+  sampleGridFromPool,
+  wildCellsOnGrid,
+  type Rng,
+  type SymbolPool,
+} from './mockBonusSessions';
+import { mulberry32 } from '../util/random';
 
 export interface MockGameApiAdapterOptions {
   /** Optional: reproduzierbare Spins für Tests/Debug. */
@@ -31,34 +40,31 @@ export interface MockGameApiAdapterOptions {
   config?: GameConfig;
 }
 
+const GEARS_VS_SYMBOL_ID = 'gears_vs';
+
 /**
  * NUR Demo / lokale Entwicklung.
  *
- * Mit `config.slotMath` entsprechen Gewinne, Win-Lines und Scatter dem Modul `evaluateDemoBaseSpin`.
- * Echte Auszahlungen liefert nur der Host über `HttpGameApiAdapter`.
+ * Der Adapter übernimmt hier bewusst die **Server-Rolle**: er entscheidet Bonus-Trigger,
+ * Free-Spin-Budgets, Retrigger und die Bonusbank. Der Client visualisiert das Ergebnis
+ * nur. Die Session-Mechanik selbst liegt in `mockBonusSessions.ts` und ist mit
+ * `server/spin-engine.ts` deckungsgleich gehalten.
+ *
+ * Echte Auszahlungen liefert ausschließlich der Host über `HttpGameApiAdapter`.
  */
 export class MockGameApiAdapter implements GameApiAdapter {
   private balance: number;
-  private readonly rng: () => number;
-  private readonly symbolIds: string[];
+  private readonly rng: Rng;
+  private readonly basePool: SymbolPool;
   private spinCounter = 0;
-  /** Demo: Fortsetzungsspins nach Deadlock-Trigger (siehe `MOCK_DEADLOCK_DEMO_SEQUENCE`). */
-  private deadlockSessionActive = false;
-  private deadlockSessionStep = 0;
-  /** Demo: Heist-Run Free-Spin-Kette. */
-  private heistSessionActive = false;
-  private heistSessionAwarded = 0;
-  private heistSessionCurrent = 0;
-  private heistSessionStickyWilds: HeistRunStickyWild[] = [];
+  private session: MockBonusSession | null = null;
 
   constructor(private readonly options: MockGameApiAdapterOptions = {}) {
     this.balance = options.initialBalance ?? 10_000;
     const cfg = options.config ?? defaultGameConfig;
-    this.symbolIds = cfg.symbols.map((s) => s.id);
+    this.basePool = buildIsolatedSymbolPool(cfg, null);
     this.rng =
-      options.seed !== undefined
-        ? mulberry32(options.seed)
-        : () => Math.random();
+      options.seed !== undefined ? mulberry32(options.seed) : () => Math.random();
   }
 
   async getBalance(): Promise<number> {
@@ -69,355 +75,381 @@ export class MockGameApiAdapter implements GameApiAdapter {
   async spin(request: SpinRequest): Promise<SpinResult> {
     const cfg = this.options.config ?? defaultGameConfig;
     const mode = request.mode ?? 'base';
-    const isDeadlockContinue =
-      mode === 'deadlock_mode' || request.meta?.deadlockSession === true;
-    const isHeistContinue =
-      mode === 'heist_run' || request.meta?.heistSession === true;
 
-    if (mode === 'base' && !isDeadlockContinue && !isHeistContinue) {
-      this.deadlockSessionActive = false;
-      this.heistSessionActive = false;
+    if (this.session && this.isContinuationRequest(request, mode)) {
+      return this.spinSessionRound(cfg, request);
     }
 
-    if (this.deadlockSessionActive && isDeadlockContinue) {
-      return this.spinDeadlockContinuation(cfg, request);
-    }
+    /** Ein regulärer Base-Spin bricht eine hängengebliebene Session bewusst ab. */
+    this.session = null;
+    return this.spinBaseRound(cfg, request);
+  }
 
-    if (this.heistSessionActive && isHeistContinue) {
-      return this.spinHeistContinuation(cfg, request);
-    }
+  private isContinuationRequest(request: SpinRequest, mode: string): boolean {
+    const active = this.session?.bonusId;
+    if (!active) return false;
+    if (mode === active) return true;
+    const meta = request.meta ?? {};
+    return (
+      (active === 'heist_run' && meta.heistSession === true) ||
+      (active === 'deadlock_mode' && meta.deadlockSession === true) ||
+      (active === 'gears_clash' && meta.gearsSession === true)
+    );
+  }
 
+  // ---------------------------------------------------------------- Base-Spin
+
+  private async spinBaseRound(
+    cfg: GameConfig,
+    request: SpinRequest,
+  ): Promise<SpinResult> {
     const scenarioRaw = request.meta?.demoSpinScenario;
     const usePreset =
       typeof scenarioRaw === 'string' && isDemoSpinScenarioId(scenarioRaw);
-    await this.delay(
-      usePreset ? 40 : 120 + this.rng() * 120,
-    );
+    await this.delay(usePreset ? 40 : 120 + this.rng() * 120);
+
     const bet = Math.max(0, Math.min(request.bet, this.balance));
-    const { reels, rows } = cfg.grid;
-    let reelStops: string[][];
-    if (usePreset) {
-      reelStops = buildDemoReelStops(scenarioRaw, cfg);
+    const reelStops = usePreset
+      ? buildDemoReelStops(scenarioRaw, cfg)
+      : sampleGridFromPool(cfg, this.basePool, this.rng);
+
+    const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
+    const forced = this.readForcedBonus(request);
+    const bonusId = forced ?? evaluated.bonusType;
+
+    let winAmount = evaluated.winAmount;
+    let displayWinLines = evaluated.displayWinLines;
+    let displayHighlights = evaluated.displayHighlights;
+    let bonus: BonusSessionPayload | null = null;
+
+    if (bonusId) {
+      bonus = this.startSession(cfg, bonusId, reelStops, bet);
     } else {
-      reelStops = [];
-      for (let r = 0; r < reels; r++) {
-        const col: string[] = [];
-        for (let row = 0; row < rows; row++) {
-          col.push(this.pickSymbolIdWeighted(cfg));
-        }
-        reelStops.push(col);
+      /** Einzelspin-Battle: nur wenn das VS-Symbol als Full-Reel-Wild einen Treffer erzeugt. */
+      const battle = this.resolveSingleSpinBattle(cfg, reelStops, bet, evaluated);
+      if (battle) {
+        winAmount = battle.winAmount;
+        displayWinLines = battle.evaluation.displayWinLines;
+        displayHighlights = battle.evaluation.displayHighlights;
+        bonus = battle.bonus;
       }
     }
 
-    const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
-    const winAmount = evaluated.winAmount;
     this.balance = Math.max(0, Math.round(this.balance - bet + winAmount));
 
-    const spinId = `mock-${++this.spinCounter}-${Math.floor(this.rng() * 1e9)}`;
-
-    let bonus = this.pickBonusPayload(
-      evaluated.bonusType,
-      cfg,
+    return this.buildResult(
+      `mock-${++this.spinCounter}-${Math.floor(this.rng() * 1e9)}`,
       reelStops,
+      winAmount,
+      bonus,
+      displayHighlights,
+      displayWinLines,
     );
+  }
 
-    const forcedRaw = request.meta?.forceBonus;
+  private readForcedBonus(request: SpinRequest): BonusId | null {
+    const raw = request.meta?.forceBonus;
     if (
-      typeof forcedRaw === 'string' &&
-      (forcedRaw === 'gears_clash' ||
-        forcedRaw === 'heist_run' ||
-        forcedRaw === 'deadlock_mode')
+      raw === 'gears_clash' ||
+      raw === 'heist_run' ||
+      raw === 'deadlock_mode'
     ) {
-      bonus = this.pickBonusPayload(forcedRaw, cfg, reelStops);
+      return raw;
     }
+    return null;
+  }
 
-    if (bonus?.type === 'deadlock_mode') {
-      this.deadlockSessionActive = true;
-      this.deadlockSessionStep = 0;
-      const full = this.mockDeadlockModePayload(cfg, reelStops);
-      bonus = {
+  private startSession(
+    cfg: GameConfig,
+    bonusId: BonusId,
+    reelStops: string[][],
+    bet: number,
+  ): BonusSessionPayload {
+    const scatters = countBonusScatterOfTypeFullGrid(reelStops, bonusId, cfg);
+
+    if (bonusId === 'deadlock_mode') {
+      const session = new MockBonusSession(bonusId, bet, 0);
+      this.session = session;
+      return {
         type: 'deadlock_mode',
         payload: {
-          ...full,
+          phase: 'collection',
+          lives: DEADLOCK_START_LIVES,
           collectedSymbols: [],
         },
+        session: session.meta(false),
       };
     }
 
-    if (bonus?.type === 'heist_run') {
-      this.heistSessionActive = true;
-      this.heistSessionAwarded = bonus.payload.freeSpinsAwarded;
-      this.heistSessionCurrent = bonus.payload.currentSpin ?? 1;
-      this.heistSessionStickyWilds = [...(bonus.payload.stickyWilds ?? [])];
+    const awarded = initialFreeSpinsForScatters(
+      scatters,
+      bonusId === 'gears_clash'
+        ? GEARS_CLASH_SESSION_SPINS
+        : cfg.freeSpinDefaults.count,
+    );
+    const session = new MockBonusSession(bonusId, bet, awarded);
+    this.session = session;
+
+    if (bonusId === 'heist_run') {
+      session.stickyWilds = wildCellsOnGrid(cfg, reelStops);
+      return {
+        type: 'heist_run',
+        payload: {
+          freeSpinsAwarded: awarded,
+          currentSpin: 0,
+          stickyWilds: [...session.stickyWilds],
+        },
+        session: session.meta(false),
+      };
     }
 
-    const displayHighlights =
-      evaluated.displayHighlights.length > 0 ? evaluated.displayHighlights : undefined;
-    const displayWinLines =
-      evaluated.displayWinLines.length > 0 ? evaluated.displayWinLines : undefined;
+    const clash = rollClashOutcome(cfg, this.rng);
+    return {
+      type: 'gears_clash',
+      payload: {
+        gearA: { multiplier: clash.gearA },
+        gearB: { multiplier: clash.gearB },
+      },
+      session: session.meta(false),
+    };
+  }
 
+  /**
+   * Gears Clash im Basisspiel (gears-clash.md §3): Expand nur, wenn die Walze als
+   * Full-Reel-Wild tatsächlich einen Treffer erzeugt. Ohne Freispiel-Session.
+   */
+  private resolveSingleSpinBattle(
+    cfg: GameConfig,
+    reelStops: string[][],
+    bet: number,
+    base: DemoSpinEvaluation,
+  ): {
+    winAmount: number;
+    evaluation: DemoSpinEvaluation;
+    bonus: BonusSessionPayload;
+  } | null {
+    const wildId = firstWildSymbolId(cfg);
+    if (!wildId || bet <= 0) return null;
+
+    for (let reel = 0; reel < reelStops.length; reel++) {
+      if (!reelStops[reel]?.includes(GEARS_VS_SYMBOL_ID)) continue;
+      const expanded = reelStops.map((col, i) =>
+        i === reel ? col.map(() => wildId) : [...col],
+      );
+      const evaluation = evaluateDemoBaseSpin(cfg, expanded, bet);
+      if (evaluation.winAmount <= base.winAmount) continue;
+
+      const clash = rollClashOutcome(cfg, this.rng);
+      const winAmount = Math.min(
+        Math.round(evaluation.winAmount * clash.winnerMultiplier),
+        Math.max(0, cfg.maxWin),
+      );
+      return {
+        winAmount,
+        evaluation,
+        bonus: {
+          type: 'gears_clash',
+          payload: {
+            gearA: { multiplier: clash.gearA },
+            gearB: { multiplier: clash.gearB },
+            winnerReel: reel,
+            winnerMultiplier: clash.winnerMultiplier,
+          },
+        },
+      };
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------- Session-Spin
+
+  private async spinSessionRound(
+    cfg: GameConfig,
+    _request: SpinRequest,
+  ): Promise<SpinResult> {
+    await this.delay(55 + this.rng() * 70);
+    const session = this.session!;
+
+    if (session.bonusId === 'deadlock_mode' && session.phase === 'collection') {
+      return this.spinDeadlockCollection(cfg, session);
+    }
+
+    /** Freispiele kosten keinen Einsatz; bewertet wird der Einsatz des Trigger-Spins. */
+    const bet = session.triggerBet;
+    const pool = buildIsolatedSymbolPool(cfg, session.bonusId);
+    const landed = sampleGridFromPool(cfg, pool, this.rng);
+
+    let grid = landed;
+    let bonusPayload: BonusSessionPayload;
+
+    if (session.bonusId === 'heist_run') {
+      session.stickyWilds = mergeCells(session.stickyWilds, wildCellsOnGrid(cfg, landed));
+      grid = applyStickyWilds(cfg, landed, session.stickyWilds);
+    } else if (session.bonusId === 'deadlock_mode') {
+      grid = injectGuaranteedWilds(cfg, landed, session.wildPool, this.rng);
+    }
+
+    const evaluated = evaluateDemoBaseSpin(cfg, grid, bet);
+    let winAmount = evaluated.winAmount;
+    let clashReel: number | undefined;
+    let clashMultiplier: number | undefined;
+    let gearA = 0;
+    let gearB = 0;
+
+    if (session.bonusId === 'deadlock_mode') {
+      winAmount = Math.min(
+        winAmount * session.overdriveMultiplier(),
+        Math.max(0, cfg.maxWin),
+      );
+    }
+
+    if (session.bonusId === 'gears_clash' && session.shouldShowClash(this.rng)) {
+      const clash = rollClashOutcome(cfg, this.rng);
+      gearA = clash.gearA;
+      gearB = clash.gearB;
+      clashReel = clash.winnerReel;
+      clashMultiplier = clash.winnerMultiplier;
+      session.clashesShown += 1;
+      const wildId = firstWildSymbolId(cfg);
+      if (wildId) {
+        const expanded = grid.map((col, i) =>
+          i === clashReel ? col.map(() => wildId) : col,
+        );
+        winAmount = Math.min(
+          Math.round(
+            evaluateDemoBaseSpin(cfg, expanded, bet).winAmount * clash.winnerMultiplier,
+          ),
+          Math.max(0, cfg.maxWin),
+        );
+      }
+    }
+
+    session.addWin(winAmount);
+    session.consumeSpin();
+    session.applyRetrigger(cfg, landed);
+
+    const complete = session.remainingSpins === 0;
+    if (complete) {
+      /** Bonusbank wird erst am Session-Ende auf die Balance gebucht (heist-run.md §8.4). */
+      this.balance = Math.max(0, Math.round(this.balance + session.bankedWin));
+    }
+
+    switch (session.bonusId) {
+      case 'heist_run':
+        bonusPayload = {
+          type: 'heist_run',
+          payload: {
+            freeSpinsAwarded: session.totalSpins,
+            currentSpin: session.roundsPlayed,
+            stickyWilds: [...session.stickyWilds],
+          },
+          session: session.meta(complete),
+        };
+        break;
+      case 'gears_clash':
+        bonusPayload = {
+          type: 'gears_clash',
+          payload: {
+            gearA: { multiplier: gearA },
+            gearB: { multiplier: gearB },
+            ...(clashReel !== undefined ? { winnerReel: clashReel } : {}),
+            ...(clashMultiplier !== undefined
+              ? { winnerMultiplier: clashMultiplier }
+              : {}),
+          },
+          session: session.meta(complete),
+        };
+        break;
+      default:
+        bonusPayload = {
+          type: 'deadlock_mode',
+          payload: {
+            phase: 'overdrive',
+            collectedSymbols: [...session.collected],
+            remainingSpins: session.remainingSpins,
+          },
+          session: session.meta(complete),
+        };
+    }
+
+    const spinId = `mock-${session.bonusId}-${++this.spinCounter}`;
+    if (complete) this.session = null;
+
+    return this.buildResult(
+      spinId,
+      grid,
+      winAmount,
+      bonusPayload,
+      evaluated.displayHighlights,
+      evaluated.displayWinLines,
+    );
+  }
+
+  private spinDeadlockCollection(
+    cfg: GameConfig,
+    session: MockBonusSession,
+  ): SpinResult {
+    const round = rollDeadlockCollectionRound(cfg, this.rng);
+    const phaseDone = session.applyCollectionRound(round);
+    session.roundsPlayed += 1;
+    if (phaseDone) session.enterOverdrive();
+
+    return this.buildResult(
+      `mock-deadlock-collect-${++this.spinCounter}`,
+      round.reelStops,
+      0,
+      {
+        type: 'deadlock_mode',
+        payload: {
+          phase: session.phase,
+          lives: session.lives,
+          collectedSymbols: [...session.collected],
+          ...(session.phase === 'overdrive'
+            ? { remainingSpins: session.remainingSpins }
+            : {}),
+        },
+        session: session.meta(false),
+      },
+      round.collected.map((c) => ({ reel: c.reel, row: c.row })),
+      [],
+    );
+  }
+
+  // ------------------------------------------------------------------ Helfer
+
+  private buildResult(
+    spinId: string,
+    reelStops: string[][],
+    winAmount: number,
+    bonus: BonusSessionPayload | null,
+    displayHighlights: { reel: number; row: number }[],
+    displayWinLines: SpinResult['displayWinLines'] = [],
+  ): SpinResult {
     return {
       spinId,
       reelStops,
       winAmount,
       balanceAfter: this.balance,
       bonus,
-      ...(displayHighlights ? { displayHighlights } : {}),
-      ...(displayWinLines ? { displayWinLines } : {}),
+      ...(displayHighlights.length > 0 ? { displayHighlights } : {}),
+      ...(displayWinLines && displayWinLines.length > 0
+        ? { displayWinLines }
+        : {}),
     };
-  }
-
-  private mergeStickyWilds(
-    incoming: HeistRunStickyWild[],
-  ): HeistRunStickyWild[] {
-    const key = (w: HeistRunStickyWild) => `${w.reel},${w.row}`;
-    const map = new Map<string, HeistRunStickyWild>();
-    for (const w of this.heistSessionStickyWilds) {
-      map.set(key(w), { ...w });
-    }
-    for (const w of incoming) {
-      map.set(key(w), { ...w });
-    }
-    return [...map.values()];
-  }
-
-  private mockHeistContinuationPayload(
-    cfg: GameConfig,
-    reelStops: string[][],
-  ): HeistRunPayload {
-    const newCount = this.rng() < 0.65 ? 1 + Math.floor(this.rng() * 2) : 0;
-    const fresh: HeistRunStickyWild[] = [];
-    for (let i = 0; i < newCount; i++) {
-      fresh.push({
-        reel: Math.floor(this.rng() * cfg.grid.reels),
-        row: Math.floor(this.rng() * cfg.grid.rows),
-        ...(this.rng() < 0.35
-          ? { multiplier: 2 + Math.floor(this.rng() * 3) }
-          : {}),
-      });
-    }
-    this.heistSessionStickyWilds = this.mergeStickyWilds(fresh);
-    return {
-      freeSpinsAwarded: this.heistSessionAwarded,
-      currentSpin: this.heistSessionCurrent,
-      stickyWilds: this.heistSessionStickyWilds,
-    };
-  }
-
-  private async spinHeistContinuation(
-    cfg: GameConfig,
-    request: SpinRequest,
-  ): Promise<SpinResult> {
-    await this.delay(55 + this.rng() * 80);
-    const bet = Math.max(0, Math.min(request.bet, this.balance));
-    this.heistSessionCurrent += 1;
-
-    const reelStops = this.sampleReelGrid(cfg);
-    const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
-    const winAmount = evaluated.winAmount;
-    this.balance = Math.max(0, Math.round(this.balance - bet + winAmount));
-    const spinId = `mock-heist-${++this.spinCounter}`;
-
-    if (this.heistSessionCurrent > this.heistSessionAwarded) {
-      this.heistSessionActive = false;
-      return {
-        spinId,
-        reelStops,
-        winAmount,
-        balanceAfter: this.balance,
-        bonus: null,
-        ...(evaluated.displayHighlights.length > 0
-          ? { displayHighlights: evaluated.displayHighlights }
-          : {}),
-        ...(evaluated.displayWinLines.length > 0
-          ? { displayWinLines: evaluated.displayWinLines }
-          : {}),
-      };
-    }
-
-    const payload = this.mockHeistContinuationPayload(cfg, reelStops);
-    const displayHighlights =
-      evaluated.displayHighlights.length > 0 ? evaluated.displayHighlights : undefined;
-    const displayWinLines =
-      evaluated.displayWinLines.length > 0 ? evaluated.displayWinLines : undefined;
-
-    return {
-      spinId,
-      reelStops,
-      winAmount,
-      balanceAfter: this.balance,
-      bonus: { type: 'heist_run', payload },
-      ...(displayHighlights ? { displayHighlights } : {}),
-      ...(displayWinLines ? { displayWinLines } : {}),
-    };
-  }
-
-  private async spinDeadlockContinuation(
-    cfg: GameConfig,
-    request: SpinRequest,
-  ): Promise<SpinResult> {
-    await this.delay(55 + this.rng() * 70);
-    const bet = Math.max(0, Math.min(request.bet, this.balance));
-    this.deadlockSessionStep += 1;
-    const idx = this.deadlockSessionStep - 1;
-
-    if (idx >= MOCK_DEADLOCK_DEMO_SEQUENCE.length) {
-      this.deadlockSessionActive = false;
-      const reelStops = this.sampleReelGrid(cfg);
-      const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
-      /** Demo-Abschluss — fester Beispiel-Gewinn (Mock, kein Produkt-RTP). */
-      const winAmount = 920 + Math.floor(this.rng() * 80);
-      this.balance = Math.max(0, Math.round(this.balance - bet + winAmount));
-      const spinId = `mock-deadlock-final-${++this.spinCounter}`;
-      return {
-        spinId,
-        reelStops,
-        winAmount,
-        balanceAfter: this.balance,
-        bonus: null,
-        ...(evaluated.displayHighlights.length > 0
-          ? { displayHighlights: evaluated.displayHighlights }
-          : {}),
-        ...(evaluated.displayWinLines.length > 0
-          ? { displayWinLines: evaluated.displayWinLines }
-          : {}),
-      };
-    }
-
-    const payload = MOCK_DEADLOCK_DEMO_SEQUENCE[idx]!;
-    const reelStops = this.sampleReelGrid(cfg);
-    const evaluated = evaluateDemoBaseSpin(cfg, reelStops, bet);
-    const winAmount = evaluated.winAmount;
-    this.balance = Math.max(0, Math.round(this.balance - bet + winAmount));
-    const spinId = `mock-deadlock-${++this.spinCounter}`;
-    const displayHighlights =
-      evaluated.displayHighlights.length > 0 ? evaluated.displayHighlights : undefined;
-    const displayWinLines =
-      evaluated.displayWinLines.length > 0 ? evaluated.displayWinLines : undefined;
-
-    return {
-      spinId,
-      reelStops,
-      winAmount,
-      balanceAfter: this.balance,
-      bonus: { type: 'deadlock_mode', payload },
-      ...(displayHighlights ? { displayHighlights } : {}),
-      ...(displayWinLines ? { displayWinLines } : {}),
-    };
-  }
-
-  /** Base-Spin: Gewichte aus Konfig (`symbolWeights`), nicht Gleichverteilung über IDs. */
-  private pickSymbolIdWeighted(cfg: GameConfig): string {
-    return pickWeightedSymbolId(this.symbolIds, cfg.symbolWeights, this.rng);
   }
 
   private delay(ms: number): Promise<void> {
     return new Promise((r) => setTimeout(r, ms));
   }
+}
 
-  private pickBonusPayload(
-    kind: BonusId | null,
-    cfg: GameConfig,
-    reelStops: string[][],
-  ): BonusSessionPayload | null {
-    if (kind === 'gears_clash') {
-      return {
-        type: 'gears_clash',
-        payload: this.mockGearsClashPayload(cfg),
-      };
-    }
-    if (kind === 'heist_run') {
-      return {
-        type: 'heist_run',
-        payload: this.mockHeistRunPayload(cfg, reelStops),
-      };
-    }
-    if (kind === 'deadlock_mode') {
-      return {
-        type: 'deadlock_mode',
-        payload: this.mockDeadlockModePayload(cfg, reelStops),
-      };
-    }
-    return null;
+function mergeCells<T extends { reel: number; row: number }>(
+  existing: T[],
+  incoming: T[],
+): T[] {
+  const map = new Map<string, T>();
+  for (const cell of [...existing, ...incoming]) {
+    map.set(`${cell.reel},${cell.row}`, cell);
   }
-
-  private mockGearsClashPayload(cfg: GameConfig): GearsClashPayload {    const range = cfg.multiplierRanges;
-    const span = Math.max(1, range.max - range.min);
-    const mulA = range.min + Math.floor(this.rng() * span);
-    const mulB = range.min + Math.floor(this.rng() * span);
-    const winnerMultiplier = mulA >= mulB ? mulA : mulB;
-    const winnerReel = Math.floor(this.rng() * cfg.grid.reels);
-    return {
-      gearA: { multiplier: mulA },
-      gearB: { multiplier: mulB },
-      winnerReel,
-      winnerMultiplier,
-    };
-  }
-
-  private mockHeistRunPayload(
-    cfg: GameConfig,
-    reelStops: string[][],
-  ): HeistRunPayload {
-    const scatterOnGrid = countBonusScatterOfTypeFullGrid(
-      reelStops,
-      'heist_run',
-      cfg,
-    );
-    const minScatter = cfg.slotMath?.scatterMinBonus ?? 3;
-    const freeSpinsAwarded =
-      cfg.freeSpinDefaults.count +
-      Math.max(0, scatterOnGrid - minScatter) * MOCK_EXTRA_FREESPINS_PER_SCATTER_ABOVE_MIN;
-    const stickyCount = 1 + Math.floor(this.rng() * 3);
-    const stickyWilds: HeistRunStickyWild[] = [];
-    for (let i = 0; i < stickyCount; i++) {
-      const reel = Math.floor(this.rng() * cfg.grid.reels);
-      const row = Math.floor(this.rng() * cfg.grid.rows);
-      stickyWilds.push({
-        reel,
-        row,
-        ...(this.rng() < 0.4
-          ? { multiplier: 2 + Math.floor(this.rng() * 4) }
-          : {}),
-      });
-    }
-    return {
-      freeSpinsAwarded,
-      currentSpin: 1,
-      stickyWilds,
-    };
-  }
-
-  private mockDeadlockModePayload(
-    cfg: GameConfig,
-    reelStops: string[][],
-  ): DeadlockModePayload {
-    const scatterOnGrid = countBonusScatterOfTypeFullGrid(
-      reelStops,
-      'deadlock_mode',
-      cfg,
-    );
-    const minScatter = cfg.slotMath?.scatterMinBonus ?? 3;
-    const bonusSpinsBoost =
-      Math.max(0, scatterOnGrid - minScatter) * MOCK_EXTRA_FREESPINS_PER_SCATTER_ABOVE_MIN;
-    return {
-      phase: 'collection',
-      lives: 3,
-      remainingSpins: 5 + bonusSpinsBoost,
-      collectedSymbols: [],
-    };
-  }
-
-  private sampleReelGrid(cfg: GameConfig): string[][] {
-    const { reels, rows } = cfg.grid;
-    const out: string[][] = [];
-    for (let r = 0; r < reels; r++) {
-      const col: string[] = [];
-      for (let row = 0; row < rows; row++) {
-        col.push(this.pickSymbolIdWeighted(cfg));
-      }
-      out.push(col);
-    }
-    return out;
-  }
+  return [...map.values()];
 }

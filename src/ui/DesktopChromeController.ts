@@ -7,8 +7,6 @@ import type { BonusSessionPayload, SpinResult } from '../config/types';
 
 const STAGE_CLASS = 'gc-slot__desktop-stage';
 const CENTER_CLASS = 'gc-slot__center';
-/** Wieder `true`, wenn die Seitenleisten neu designt und produktiv geschaltet werden. */
-const SHOW_DESKTOP_SIDE_PANELS = false;
 const ASIDE_CLASS = 'gc-desktop-chrome';
 const SECTION_CLASS = 'gc-desktop-chrome__section';
 const LABEL_CLASS = 'gc-desktop-chrome__label';
@@ -19,6 +17,10 @@ export interface DesktopSpinSessionStats {
   sessionWinTotal: number;
   /** Maximum eines Einzel-`winAmount` in dieser Session. */
   biggestWinSession: number;
+  /** Anzahl abgeschlossener Spins seit Mount. */
+  spinCount?: number;
+  /** Text aus `BonusEngine.describeBonus()` — reine Anzeige. */
+  bonusDescription?: string;
 }
 
 export class DesktopChromeController {
@@ -36,31 +38,19 @@ export class DesktopChromeController {
     center.className = CENTER_CLASS;
     center.setAttribute('data-gc-center', 'game');
 
-    if (SHOW_DESKTOP_SIDE_PANELS) {
-      const left = this.buildAside(
-        'left',
-        'Maschinen- und Bonus-Status',
-        [
-          { panel: 'reactor-status', label: 'Reaktor-Status', hint: 'API' },
-          { panel: 'bonus-progress', label: 'Bonus-Fortschritt', hint: 'API' },
-          { panel: 'overheat-level', label: 'Überhitzung', hint: 'API' },
-        ],
-      );
-      const right = this.buildAside(
-        'right',
-        'Session und Effekte',
-        [
-          { panel: 'session-win', label: 'Session-Gewinn', hint: 'Summe API' },
-          { panel: 'biggest-win', label: 'Bester Treffer', hint: 'API' },
-          { panel: 'active-effects', label: 'Aktive Effekte', hint: 'API' },
-        ],
-      );
-      stage.appendChild(left);
-      stage.appendChild(center);
-      stage.appendChild(right);
-    } else {
-      stage.appendChild(center);
-    }
+    const left = this.buildAside('left', 'Bonus-Status', [
+      { panel: 'active-effects', label: 'Modus', hint: 'Server' },
+      { panel: 'bonus-progress', label: 'Bonus-Fortschritt', hint: 'Server' },
+      { panel: 'bonus-detail', label: 'Details', hint: 'Server' },
+    ]);
+    const right = this.buildAside('right', 'Session-Kennzahlen', [
+      { panel: 'session-win', label: 'Session-Gewinn', hint: 'Summe' },
+      { panel: 'biggest-win', label: 'Bester Treffer', hint: 'Einzelspin' },
+      { panel: 'spin-count', label: 'Spins', hint: 'seit Start' },
+    ]);
+    stage.appendChild(left);
+    stage.appendChild(center);
+    stage.appendChild(right);
 
     parent.appendChild(stage);
 
@@ -74,10 +64,11 @@ export class DesktopChromeController {
     const fmt = this.mkFmt(locale);
     this.setPanelText('session-win', fmt(0));
     this.setPanelText('biggest-win', fmt(0));
-    this.setPanelText('active-effects', 'Basis');
-    this.setPanelText('reactor-status', 'Bereit');
+    this.setPanelText('spin-count', '0');
+    this.setPanelText('active-effects', 'Basisspiel');
     this.setPanelText('bonus-progress', '—');
-    this.setPanelText('overheat-level', 'Normal');
+    this.setPanelText('bonus-detail', '—');
+    this.setBonusAccent(null);
   }
 
   /**
@@ -91,70 +82,59 @@ export class DesktopChromeController {
     const fmt = this.mkFmt(locale);
     this.setPanelText('session-win', fmt(stats.sessionWinTotal));
     this.setPanelText('biggest-win', fmt(stats.biggestWinSession));
+    if (stats.spinCount != null) {
+      this.setPanelText('spin-count', `${stats.spinCount}`);
+    }
 
     const bonus = result.bonus;
     if (!bonus) {
-      this.setPanelText('active-effects', 'Basis');
-      this.setPanelText('reactor-status', 'Bereit');
+      this.setPanelText('active-effects', 'Basisspiel');
       this.setPanelText('bonus-progress', '—');
-      this.setPanelText('overheat-level', 'Normal');
+      this.setPanelText('bonus-detail', '—');
+      this.setBonusAccent(null);
       return;
     }
 
     this.setPanelText('active-effects', this.bonusTypeLabel(bonus));
-    this.fillBonusSidePanels(bonus);
+    this.setPanelText('bonus-progress', this.bonusProgressText(bonus));
+    this.setPanelText('bonus-detail', stats.bonusDescription ?? '—');
+    this.setBonusAccent(bonus.type);
   }
 
-  private fillBonusSidePanels(bonus: BonusSessionPayload): void {
+  /** Fortschritt in einer Zeile — Zahlen kommen unverändert aus dem Payload. */
+  private bonusProgressText(bonus: BonusSessionPayload): string {
     switch (bonus.type) {
       case 'gears_clash': {
-        const { gearA, gearB, winnerReel, winnerMultiplier } = bonus.payload;
-        this.setPanelText(
-          'reactor-status',
-          `×${gearA.multiplier} · ×${gearB.multiplier}`,
-        );
-        this.setPanelText('bonus-progress', 'Gears Clash');
-        if (winnerMultiplier != null && winnerReel != null) {
-          this.setPanelText(
-            'overheat-level',
-            `Walze ${winnerReel + 1} · ×${winnerMultiplier}`,
-          );
-        } else if (winnerMultiplier != null) {
-          this.setPanelText('overheat-level', `Gewinn ×${winnerMultiplier}`);
-        } else {
-          this.setPanelText('overheat-level', 'Duel');
-        }
-        break;
+        const { gearA, gearB } = bonus.payload;
+        return `×${gearA.multiplier} vs ×${gearB.multiplier}`;
       }
       case 'heist_run': {
-        const p = bonus.payload;
-        const cur = p.currentSpin;
-        const max = p.freeSpinsAwarded;
-        const spinTxt =
-          cur != null ? `${cur} / ${max}` : `${max} FS`;
-        this.setPanelText('reactor-status', 'Freispiele');
-        this.setPanelText('bonus-progress', spinTxt);
-        const n = p.stickyWilds?.length ?? 0;
-        this.setPanelText('overheat-level', `Sticky ${n}`);
-        break;
+        const { currentSpin, freeSpinsAwarded } = bonus.payload;
+        return currentSpin != null
+          ? `${currentSpin} / ${freeSpinsAwarded} FS`
+          : `${freeSpinsAwarded} FS`;
       }
       case 'deadlock_mode': {
         const p = bonus.payload;
-        const phaseDe = p.phase === 'collection' ? 'Sammlung' : 'Overdrive';
-        const lives = p.lives;
-        this.setPanelText(
-          'reactor-status',
-          lives != null ? `Leben ${lives}` : 'Deadlock',
-        );
-        this.setPanelText('bonus-progress', phaseDe);
-        const c = p.collectedSymbols?.length ?? 0;
-        this.setPanelText('overheat-level', `Speicher ${c}`);
-        break;
+        const phase = p.phase === 'collection' ? 'Sammlung' : 'Overdrive';
+        return p.remainingSpins != null
+          ? `${phase} · ${p.remainingSpins} übrig`
+          : phase;
       }
       default:
-        this.setPanelText('reactor-status', 'Bonus');
-        this.setPanelText('bonus-progress', '—');
-        this.setPanelText('overheat-level', '—');
+        return '—';
+    }
+  }
+
+  private setBonusAccent(bonusId: BonusSessionPayload['type'] | null): void {
+    const aside = this.stageEl?.querySelector<HTMLElement>(
+      `.${ASIDE_CLASS}--left`,
+    );
+    if (!aside) return;
+    if (bonusId) {
+      aside.dataset.bonusId = bonusId;
+    } else {
+      delete aside.dataset.bonusId;
     }
   }
 

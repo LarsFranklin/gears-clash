@@ -2,26 +2,32 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Gears Clash — Preview</title>
   </head>
-  <body class="gc-demo-page">
+  <body class="gc-demo-page gc-demo-page--player">
     <div class="gc-demo-page__shell">
       <header class="gc-demo-page__brand">
+        <p class="gc-demo-page__eyebrow">Industrial Slot</p>
         <h1 class="gc-demo-page__title">Gears Clash</h1>
-        <p class="gc-demo-page__subtitle">Slot Prototype</p>
+        <p class="gc-demo-page__subtitle">
+          5×5 · 20 Gewinnlinien · Gears Clash · Heist Run · Deadlock Mode
+        </p>
       </header>
-      <div class="gc-demo-page__devtools" aria-label="Demo-Werkzeuge">
-        <div id="gc-demo-session-host"></div>
-        <div id="gc-demo-sim-host"></div>
-        <div id="gc-demo-vistest-host"></div>
-      </div>
       <main class="gc-demo-page__stage">
         <div id="game" class="gc-demo-page__game-host"></div>
       </main>
       <p class="gc-demo-page__note">
         Lokale Vorschau · Daten via MockGameApiAdapter (keine Produkt-API).
       </p>
+      <details class="gc-demo-page__devtools" id="gc-demo-devtools">
+        <summary class="gc-demo-page__devtools-toggle">Entwicklerwerkzeuge</summary>
+        <div class="gc-demo-page__devtools-body">
+          <div id="gc-demo-session-host"></div>
+          <div id="gc-demo-sim-host"></div>
+          <div id="gc-demo-vistest-host"></div>
+        </div>
+      </details>
     </div>
     <script type="module" src="/src/demo/main.ts"></script>
   </body>

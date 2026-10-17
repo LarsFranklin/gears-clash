@@ -1,5 +1,10 @@
 import type { AssetManifest } from '../config/assetManifest';
 
+export interface AssetLoaderHooks {
+  /** Symbol-ID fehlt im Manifest — es wird der Fallback-Pfad genutzt (falls gesetzt). */
+  onSymbolMissing?: (symbolId: string, fallbackPath: string | null) => void;
+}
+
 /**
  * Asset-Lookup-Schicht.
  *
@@ -12,7 +17,10 @@ import type { AssetManifest } from '../config/assetManifest';
  * trifft keine Spielentscheidungen.
  */
 export class AssetLoader {
-  constructor(private readonly manifest: AssetManifest) {}
+  constructor(
+    private readonly manifest: AssetManifest,
+    private readonly hooks?: AssetLoaderHooks,
+  ) {}
 
   getManifest(): AssetManifest {
     return this.manifest;
@@ -25,7 +33,9 @@ export class AssetLoader {
   getSymbolPath(symbolId: string): string | null {
     const direct = this.manifest.symbols[symbolId];
     if (direct) return direct;
-    return this.manifest.fallback?.symbol ?? null;
+    const fallback = this.manifest.fallback?.symbol ?? null;
+    this.hooks?.onSymbolMissing?.(symbolId, fallback);
+    return fallback;
   }
 
   /**

@@ -1,0 +1,286 @@
+/* --- Bonus-Overlay --- */
+.gc-bonus-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.gc-bonus-overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gc-bonus-overlay__dim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.78) 100%
+  );
+  border-radius: 10px;
+}
+
+.gc-bonus-overlay__card {
+  position: relative;
+  z-index: 1;
+  padding: clamp(1rem, 3vw, 1.75rem) clamp(1.5rem, 5vw, 2.75rem);
+  border-radius: 14px;
+  background: linear-gradient(
+    165deg,
+    rgba(50, 42, 32, 0.96) 0%,
+    rgba(18, 16, 22, 0.98) 100%
+  );
+  border: 2px solid rgba(201, 162, 39, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 16px 48px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 220, 160, 0.12);
+  transform: scale(0.82);
+  opacity: 0;
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease;
+}
+
+.gc-bonus-overlay--visible .gc-bonus-overlay__card {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.gc-bonus-overlay__title {
+  margin: 0;
+  font-size: clamp(1.35rem, 4.5vw, 2rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  background: linear-gradient(90deg, #f0d878, #c9a227, #f5e6b8, #c9a227);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 60px rgba(201, 162, 39, 0.4);
+}
+
+.gc-bonus-overlay__subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(200, 190, 180, 0.7);
+  text-align: center;
+}
+
+.gc-bonus-overlay__accent-slot {
+  margin-bottom: 0.75rem;
+}
+
+/*
+ * Modus-Theming der Intro-Karte: Farben kommen aus `tokens.css` über
+ * `data-bonus-id`, hier steht nur noch die gemeinsame Form.
+ */
+.gc-bonus-overlay__card[data-bonus-id] {
+  border-color: var(--gc-accent-border);
+  background: linear-gradient(
+    165deg,
+    var(--gc-accent-surface-top) 0%,
+    var(--gc-accent-surface-bottom) 100%
+  );
+  box-shadow:
+    var(--gc-shadow-card),
+    0 0 40px var(--gc-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.gc-bonus-overlay__card[data-bonus-id] .gc-bonus-overlay__title {
+  background: linear-gradient(
+    90deg,
+    var(--gc-accent-bright),
+    var(--gc-accent),
+    #fff6e0,
+    var(--gc-accent)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.gc-bonus-overlay__card[data-bonus-id] .gc-bonus-overlay__subtitle {
+  color: var(--gc-accent-bright);
+  opacity: 0.72;
+}
+
+/* --- Bonus Theme: Gears Clash --- */
+.gc-bonus-accent--gears {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  height: 50px;
+  position: relative;
+}
+
+.gc-bonus-gear {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e88820;
+  border-radius: 50%;
+  position: relative;
+}
+
+.gc-bonus-gear::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 2px solid #ffd8a8;
+  border-radius: 50%;
+}
+
+.gc-bonus-gear--left {
+  animation: gc-gear-spin 3s linear infinite;
+  margin-right: -8px;
+}
+
+.gc-bonus-gear--right {
+  animation: gc-gear-spin 3s linear infinite reverse;
+  margin-left: -8px;
+}
+
+@keyframes gc-gear-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.gc-bonus-sparks {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #ffd860;
+  border-radius: 50%;
+  animation: gc-spark-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes gc-spark-pulse {
+  from { opacity: 0.5; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1.2); }
+}
+
+/* --- Bonus Theme: Heist Run --- */
+.gc-bonus-accent--heist {
+  display: flex;
+  justify-content: center;
+  height: 50px;
+}
+
+.gc-bonus-wild-star {
+  width: 45px;
+  height: 45px;
+  background: radial-gradient(circle, #48c8f0 20%, transparent 70%);
+  clip-path: polygon(
+    50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%,
+    50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%
+  );
+  animation: gc-star-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes gc-star-glow {
+  from { filter: drop-shadow(0 0 8px rgba(72, 200, 240, 0.5)); transform: scale(1); }
+  to { filter: drop-shadow(0 0 16px rgba(72, 200, 240, 0.8)); transform: scale(1.05); }
+}
+
+/* --- Bonus Theme: Deadlock Mode --- */
+.gc-bonus-accent--deadlock {
+  display: flex;
+  justify-content: center;
+}
+
+.gc-bonus-phases {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gc-bonus-phase {
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(208, 64, 136, 0.15);
+  border: 1px solid rgba(208, 64, 136, 0.3);
+  text-align: center;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.gc-bonus-phase--active {
+  opacity: 1;
+  background: rgba(208, 64, 136, 0.3);
+  border-color: rgba(208, 64, 136, 0.6);
+  box-shadow: 0 0 15px rgba(208, 64, 136, 0.3);
+}
+
+.gc-bonus-phase__label {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(248, 208, 240, 0.6);
+}
+
+.gc-bonus-phase__name {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f8d0f0;
+}
+
+.gc-bonus-phase-connector {
+  width: 20px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(208, 64, 136, 0.3), rgba(208, 64, 136, 0.6), rgba(208, 64, 136, 0.3));
+  animation: gc-connector-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes gc-connector-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.gc-hud-panel--tick .gc-hud-panel__value {
+  color: #fff8e8;
+  text-shadow: 0 0 18px rgba(255, 200, 100, 0.35);
+}
+
+/* --- Rolling Digits --- */
+.gc-rolling-digits {
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.gc-rolling-digit {
+  display: inline-block;
+  transition: transform 0.15s ease-out;
+}
+
+.gc-rolling-digit--roll {
+  animation: gc-digit-roll 0.15s ease-out;
+}
+
+@keyframes gc-digit-roll {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

@@ -25,6 +25,12 @@ export const defaultGameConfig: GameConfig = {
      * Siehe docs/bonuses/gears-clash.md §3.
      */
     { id: 'gears_vs', kind: 'normal', label: 'VS Gears' },
+    /**
+     * Deadlock-Collection-Symbole (Phase 1) — eigenes Set laut docs/bonuses/deadlock-mode.md §5.1.
+     * Gewicht 0: sie landen nie im Basisspiel, nur im Collection-Raster.
+     */
+    { id: 'broken_gear', kind: 'normal', label: 'Broken Gear' },
+    { id: 'multiplier_gear', kind: 'normal', label: 'Multiplier Gear' },
     {
       id: 'bonus_gears_clash',
       kind: 'bonus',
@@ -57,6 +63,9 @@ export const defaultGameConfig: GameConfig = {
     quantum_chamber: 4,
     wild_gear: 2,
     gears_vs: 1.5,
+    /** Nur Deadlock-Collection — im Basisspiel bewusst ausgeschlossen. */
+    broken_gear: 0,
+    multiplier_gear: 0,
     /** Bewusst selten für Base-Strip / Mock-Ziehung — Verteilung nutzt Gewichte (nicht gleichverteilt). */
     bonus_gears_clash: 0.55,
     bonus_heist_run: 0.55,

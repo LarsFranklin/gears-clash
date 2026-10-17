@@ -1,10 +1,15 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command, mode }) => {
+  const tools = mode === 'tools';
   if (command === 'serve') {
     return {
       root: '.',
+      server: {
+        port: tools ? 5174 : 5173,
+        strictPort: true,
+      },
     };
   }
 

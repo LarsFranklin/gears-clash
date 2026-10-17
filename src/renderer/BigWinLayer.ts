@@ -31,6 +31,7 @@ export class BigWinLayer {
 
   private coins: Coin[] = [];
   private isPlaying = false;
+  private destroyed = false;
   private currentTier: WinTier | null = null;
   private currentAmount = 0;
   private displayedAmount = 0;
@@ -102,7 +103,7 @@ export class BigWinLayer {
    * Optional per Klick beenden: `cancel()` bzw. Pointer auf Canvas (Renderer).
    */
   async showWinToast(tier: WinTier, amount: number, durationMs = 1750): Promise<void> {
-    if (tier !== 'medium') return;
+    if (tier !== 'medium' || this.destroyed) return;
 
     this.currentTier = tier;
     this.currentAmount = amount;
@@ -120,6 +121,10 @@ export class BigWinLayer {
 
     await new Promise<void>((resolve) => {
       const step = () => {
+        if (this.destroyed) {
+          resolve();
+          return;
+        }
         if (!this.isPlaying) {
           this.hide();
           resolve();
@@ -143,7 +148,7 @@ export class BigWinLayer {
   }
 
   async showBigWin(tier: WinTier, amount: number, durationMs = 3000): Promise<void> {
-    if (tier !== 'big' && tier !== 'mega') return;
+    if ((tier !== 'big' && tier !== 'mega') || this.destroyed) return;
 
     this.currentTier = tier;
     this.currentAmount = amount;
@@ -166,6 +171,10 @@ export class BigWinLayer {
 
     await new Promise<void>((resolve) => {
       const step = () => {
+        if (this.destroyed) {
+          resolve();
+          return;
+        }
         if (!this.isPlaying) {
           this.hide();
           resolve();
@@ -317,6 +326,7 @@ export class BigWinLayer {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.cancel();
     this.view.removeChildren();
     this.bannerG.destroy();

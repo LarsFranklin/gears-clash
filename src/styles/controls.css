@@ -1,0 +1,235 @@
+/* --- Controls Bar --- */
+.gc-controls-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 1rem);
+  padding: 0.5rem 0;
+  flex-wrap: wrap;
+}
+
+.gc-controls-bar__group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.gc-controls-bar__btn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #3a3228 0%, #2a2218 100%);
+  border: 1px solid rgba(90, 70, 40, 0.5);
+  color: #e8d8c0;
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gc-controls-bar__btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #4a4238 0%, #3a3228 100%);
+  box-shadow: 0 0 10px rgba(201, 162, 39, 0.2);
+}
+
+.gc-controls-bar__btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.gc-controls-bar__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gc-controls-bar__bet-display {
+  min-width: 60px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #f0e8d8;
+  padding: 0 0.5rem;
+}
+
+.gc-controls-bar__toggle {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #2a2218 0%, #1a1410 100%);
+  border: 1px solid rgba(70, 50, 30, 0.6);
+  color: #a09888;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: all 0.15s ease;
+}
+
+.gc-controls-bar__toggle--active {
+  background: linear-gradient(180deg, #4a3a28 0%, #3a2a18 100%);
+  border-color: rgba(201, 162, 39, 0.5);
+  color: #f0d878;
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.2);
+}
+
+.gc-controls-bar__toggle:hover:not(:disabled) {
+  border-color: rgba(201, 162, 39, 0.4);
+}
+
+.gc-controls-bar__auto-select {
+  appearance: none;
+  background: linear-gradient(180deg, #2a2218 0%, #1a1410 100%);
+  border: 1px solid rgba(70, 50, 30, 0.6);
+  border-radius: 8px;
+  color: #c0b8a8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+}
+
+.gc-controls-bar__auto-select:focus {
+  outline: 2px solid rgba(201, 162, 39, 0.5);
+  outline-offset: 2px;
+}
+
+.gc-controls-bar__bet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.gc-controls-bar__label {
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8a8070;
+}
+
+.gc-controls-bar__auto-count {
+  min-width: 2.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f0d878;
+}
+
+.gc-controls-bar__btn--stop {
+  color: #ffb0a0;
+  border-color: rgba(150, 60, 40, 0.6);
+}
+
+.gc-controls-bar__toggle--sound {
+  min-width: 2.4rem;
+  font-size: 0.85rem;
+}
+
+.gc-controls-bar--locked .gc-controls-bar__group,
+.gc-controls-bar--locked .gc-controls-bar__toggle {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/*
+ * Mobile: Controls als Bottom-Sheet unter dem Raster — nah am Daumen,
+ * mit Touch-Zielen ab 44px (WCAG 2.5.5).
+ */
+.gc-slot[data-gc-layout='compact'] .gc-controls-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
+  margin: 0 calc(-1 * clamp(0.35rem, 1.2vw, 0.55rem));
+  padding: 0.6rem clamp(0.5rem, 3vw, 1rem)
+    calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  gap: 0.6rem;
+  border-radius: var(--gc-radius-lg) var(--gc-radius-lg) 0 0;
+  border-top: 1px solid rgba(90, 78, 56, 0.55);
+  background: linear-gradient(
+    180deg,
+    rgba(22, 20, 26, 0.94) 0%,
+    rgba(10, 10, 14, 0.98) 100%
+  );
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.gc-slot[data-gc-layout='compact'] .gc-controls-bar__btn {
+  width: 44px;
+  height: 44px;
+  font-size: 1.15rem;
+}
+
+.gc-slot[data-gc-layout='compact'] .gc-controls-bar__toggle,
+.gc-slot[data-gc-layout='compact'] .gc-controls-bar__auto-select {
+  min-height: 44px;
+  padding-inline: 0.9rem;
+}
+
+.gc-slot[data-gc-layout='compact'] .gc-controls-bar__bet-display {
+  font-size: 1rem;
+}
+
+/* Querformat auf dem Handy: flache Leiste, damit das Raster Platz behält. */
+.gc-slot[data-gc-layout='compact'][data-gc-orientation='landscape']
+  .gc-controls-bar {
+  padding-block: 0.35rem;
+  gap: 0.45rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.gc-slot[data-gc-layout='compact'][data-gc-orientation='landscape']
+  .gc-controls-bar__label {
+  display: none;
+}
+
+/* --- Toast --- */
+.gc-toast {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(4.5rem, 12%, 7rem);
+  transform: translate(-50%, 0.5rem);
+  z-index: 900;
+  max-width: min(28rem, 88%);
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(38, 30, 22, 0.97) 0%, rgba(22, 17, 12, 0.97) 100%);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  color: #f0e8d8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.gc-toast--visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.gc-toast[data-gc-toast-kind='warning'] {
+  border-color: rgba(230, 170, 60, 0.55);
+  color: #ffe0a0;
+}
+
+.gc-toast[data-gc-toast-kind='error'] {
+  border-color: rgba(210, 80, 60, 0.6);
+  color: #ffc0b0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gc-toast {
+    transition: none;
+  }
+}

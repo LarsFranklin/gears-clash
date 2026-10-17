@@ -1,171 +1,139 @@
-import type { GearsClashPayload } from '../config/types';
-
-const ROOT = 'gc-gears-clash-session';
+import type {
+  BonusId,
+  BonusSessionPayload,
+  GearsClashPayload,
+  SpinResult,
+} from '../config/types';
+import { BonusSessionOverlay } from './BonusSessionOverlay';
 
 export interface GearsClashSessionHooks {
-  /** Pixi-Battle + Full-Reel-Wild — vom Host/Game angestoßen. */
+  /** Pixi-Battle + Full-Reel-Wild — vom Spiel angestoßen, Outcome kommt vom Server. */
   onBattle?: (payload: GearsClashPayload) => void | Promise<void>;
 }
 
+const AUTO_SPIN_PAUSE_MS = 620;
+
+function hasClash(payload: GearsClashPayload): boolean {
+  return payload.winnerReel !== undefined && payload.winnerMultiplier !== undefined;
+}
+
 /**
- * Gears Clash — Multiplier-Battle UI (DOM). Mathematik/Outcome kommt aus dem Server-Payload.
+ * Gears Clash — zwei Betriebsarten:
+ * - **Einzelspin-Battle** (`runBattle`): VS-Symbol expandiert zur Full-Reel-Wild.
+ * - **Freispiel-Session** (`runSession`): 8 Freispiele mit erhöhter Clash-Rate
+ *   und garantiert mindestens einem Clash (gears-clash.md §2).
  */
-export class GearsClashSessionController {
-  private el: HTMLDivElement | null = null;
-  private abort = new AbortController();
+export class GearsClashSessionController extends BonusSessionOverlay {
+  protected readonly bonusId: BonusId = 'gears_clash';
+  protected readonly title = 'Gears Clash';
 
-  mount(parent: HTMLElement): void {
-    if (this.el) return;
-    const el = document.createElement('div');
-    el.className = ROOT;
-    el.setAttribute('role', 'dialog');
-    el.setAttribute('aria-modal', 'true');
-    el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = `
-      <div class="gc-gears-clash-session__panel">
-        <header class="gc-gears-clash-session__head">
-          <h2 class="gc-gears-clash-session__title">Gears Clash</h2>
-          <p class="gc-gears-clash-session__subtitle">Multiplier Battle</p>
-        </header>
-        <div class="gc-gears-clash-session__arena">
-          <div class="gc-gears-clash-session__gear gc-gears-clash-session__gear--a">
-            <span class="gc-gears-clash-session__gear-label">Gear A</span>
-            <span class="gc-gears-clash-session__gear-mul" data-role="gear-a">×—</span>
-          </div>
-          <div class="gc-gears-clash-session__vs">VS</div>
-          <div class="gc-gears-clash-session__gear gc-gears-clash-session__gear--b">
-            <span class="gc-gears-clash-session__gear-label">Gear B</span>
-            <span class="gc-gears-clash-session__gear-mul" data-role="gear-b">×—</span>
-          </div>
-        </div>
-        <p class="gc-gears-clash-session__status" data-role="status">Kampf startet …</p>
-        <p class="gc-gears-clash-session__winner" data-role="winner" hidden></p>
-        <button type="button" class="gc-gears-clash-session__action" data-role="continue" hidden>
-          Weiter
-        </button>
-      </div>
-    `;
-    parent.appendChild(el);
-    this.el = el;
-  }
-
-  destroy(): void {
-    this.abort.abort();
-    this.el?.remove();
-    this.el = null;
-    this.abort = new AbortController();
-  }
-
-  /**
-   * Zeigt Battle-UI, spielt Renderer-Hook ab, zeigt Sieger — schließt nach „Weiter".
-   */
-  async runSession(
+  /** Einzelspin: nur Battle-Anzeige, keine Session-Buchhaltung. */
+  async runBattle(
     payload: GearsClashPayload,
     hooks?: GearsClashSessionHooks,
   ): Promise<void> {
     if (!this.el) return;
-    const signal = this.abort.signal;
-
-    this.el.setAttribute('aria-hidden', 'false');
-    this.el.classList.add('gc-gears-clash-session--visible');
-
-    const gearA = this.el.querySelector('[data-role="gear-a"]');
-    const gearB = this.el.querySelector('[data-role="gear-b"]');
-    const status = this.el.querySelector('[data-role="status"]');
-    const winner = this.el.querySelector('[data-role="winner"]') as HTMLElement | null;
-    const btn = this.el.querySelector('[data-role="continue"]') as HTMLButtonElement | null;
-
-    if (gearA) gearA.textContent = `×${payload.gearA.multiplier}`;
-    if (gearB) gearB.textContent = `×${payload.gearB.multiplier}`;
-    if (status) status.textContent = 'Zahnräder prallen aufeinander …';
-    if (winner) {
-      winner.hidden = true;
-      winner.textContent = '';
-    }
-    if (btn) btn.hidden = true;
-
-    this.el.classList.add('gc-gears-clash-session--battle');
-
-    await this.delay(600, signal);
-    if (signal.aborted) return;
-
-    await hooks?.onBattle?.(payload);
-
-    if (signal.aborted) return;
-
-    this.el.classList.remove('gc-gears-clash-session--battle');
-    this.el.classList.add('gc-gears-clash-session--winner');
-
-    const winMul =
-      payload.winnerMultiplier ??
-      Math.max(payload.gearA.multiplier, payload.gearB.multiplier);
-    const reelTxt =
-      payload.winnerReel !== undefined
-        ? `Walze ${payload.winnerReel + 1}`
-        : 'Sieger-Walze';
-
-    if (status) status.textContent = 'Full-Reel-Wild aktiv';
-    if (winner) {
-      winner.hidden = false;
-      winner.textContent = `${reelTxt} · ×${winMul}`;
-    }
-    if (btn) {
-      btn.hidden = false;
-      btn.textContent = 'Weiter';
-    }
-
-    if (btn) {
-      await this.waitClick(btn, signal);
-    }
-
+    this.show();
+    this.renderArena(payload);
+    await this.playBattle(payload, hooks);
+    await this.delay(700);
     this.hide();
   }
 
-  private hide(): void {
-    if (!this.el) return;
-    this.el.classList.remove(
-      'gc-gears-clash-session--visible',
-      'gc-gears-clash-session--battle',
-      'gc-gears-clash-session--winner',
+  async runSession(
+    initial: SpinResult,
+    requestNextSpin: () => Promise<SpinResult>,
+    hooks?: GearsClashSessionHooks,
+  ): Promise<BonusSessionPayload | undefined> {
+    if (!this.el || initial.bonus?.type !== 'gears_clash') return undefined;
+
+    this.show();
+    let current = initial.bonus;
+    this.renderStats([
+      { key: 'Freispiele', value: String(current.session?.remainingSpins ?? 0) },
+      { key: 'Clashes', value: '0' },
+      { key: 'Gesammelt', value: '0' },
+    ]);
+
+    await this.flashDialog(
+      'Gears Clash',
+      `${current.session?.totalSpins ?? 8} Freispiele — mindestens ein Clash ist garantiert.`,
+      1600,
     );
-    this.el.setAttribute('aria-hidden', 'true');
-  }
 
-  private delay(ms: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve) => {
-      if (signal.aborted) {
-        resolve();
-        return;
+    let clashes = 0;
+    while (!this.signal.aborted && !current.session?.complete) {
+      await this.delay(AUTO_SPIN_PAUSE_MS);
+      if (this.signal.aborted) break;
+
+      let result: SpinResult;
+      try {
+        result = await requestNextSpin();
+      } catch {
+        break;
       }
-      const t = window.setTimeout(() => resolve(), ms);
-      signal.addEventListener(
-        'abort',
-        () => {
-          clearTimeout(t);
-          resolve();
+      if (result.bonus?.type !== 'gears_clash') break;
+
+      current = result.bonus;
+      if (hasClash(current.payload)) {
+        clashes += 1;
+        this.renderArena(current.payload);
+        await this.playBattle(current.payload, hooks);
+      }
+      this.renderStats([
+        { key: 'Freispiele', value: String(current.session?.remainingSpins ?? 0) },
+        { key: 'Clashes', value: String(clashes) },
+        {
+          key: 'Gesammelt',
+          value: (current.session?.bankedWin ?? 0).toLocaleString(),
         },
-        { once: true },
+      ]);
+
+      const retrigger = current.session?.retriggerAwarded ?? 0;
+      if (retrigger > 0) {
+        await this.flashDialog('Retrigger', `+${retrigger} Freispiele`, 1200);
+      }
+    }
+
+    if (!this.signal.aborted) {
+      const total = current.session?.bankedWin ?? 0;
+      await this.awaitDialog(
+        'Gears Clash beendet',
+        `Bonusgewinn: ${total.toLocaleString()} Coins · ${clashes} Clash${clashes === 1 ? '' : 'es'}`,
+        'Gutschreiben',
       );
-    });
+    }
+
+    this.hide();
+    return current;
   }
 
-  private waitClick(btn: HTMLButtonElement, signal: AbortSignal): Promise<boolean> {
-    return new Promise((resolve) => {
-      const onAbort = (): void => {
-        btn.removeEventListener('click', onClick);
-        resolve(false);
-      };
-      const onClick = (): void => {
-        btn.removeEventListener('click', onClick);
-        signal.removeEventListener('abort', onAbort);
-        resolve(true);
-      };
-      if (signal.aborted) {
-        resolve(false);
-        return;
-      }
-      signal.addEventListener('abort', onAbort, { once: true });
-      btn.addEventListener('click', onClick, { once: true });
-    });
+  private renderArena(payload: GearsClashPayload): void {
+    this.renderStats([
+      { key: 'Gear A', value: `×${payload.gearA.multiplier}` },
+      { key: 'Gear B', value: `×${payload.gearB.multiplier}` },
+    ]);
+  }
+
+  private async playBattle(
+    payload: GearsClashPayload,
+    hooks?: GearsClashSessionHooks,
+  ): Promise<void> {
+    this.el?.classList.add('gc-bonus-session--battle');
+    await this.delay(420);
+    if (this.signal.aborted) {
+      this.el?.classList.remove('gc-bonus-session--battle');
+      return;
+    }
+    await hooks?.onBattle?.(payload);
+    this.el?.classList.remove('gc-bonus-session--battle');
+
+    if (this.signal.aborted || !hasClash(payload)) return;
+    const reel = (payload.winnerReel ?? 0) + 1;
+    await this.flashDialog(
+      'Full-Reel-Wild',
+      `Walze ${reel} · ×${payload.winnerMultiplier}`,
+      1000,
+    );
   }
 }

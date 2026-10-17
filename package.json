@@ -1,6 +1,6 @@
 {
   "name": "gears-clash-game",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-agnostisches HTML5-Slot-Game (Gears Clash) — Social/Fun-Coins, PixiJS.",
   "sideEffects": [
     "**/*.css"
@@ -25,7 +25,8 @@
     "./gameConfig.schema.json": "./dist/gameConfig.schema.json"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5173",
+    "dev:tools": "vite --mode tools --port 5174",
     "dev:server": "tsx watch server/index.ts",
     "dev:full": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "vite build && tsc -p tsconfig.build.json && node scripts/copy-schema.mjs",

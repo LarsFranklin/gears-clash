@@ -5,15 +5,17 @@ import { SymbolRegistry } from '../core/SymbolRegistry';
 describe('SymbolRegistry', () => {
   const registry = new SymbolRegistry(defaultGameConfig);
 
-  it('liefert alle 15 Symbole aus defaultGameConfig (inkl. gears_vs)', () => {
-    expect(registry.allIds.length).toBe(15);
-    expect(registry.all.length).toBe(15);
+  it('liefert alle 17 Symbole aus defaultGameConfig (inkl. gears_vs und Collection-Set)', () => {
+    expect(registry.allIds.length).toBe(17);
+    expect(registry.all.length).toBe(17);
     expect(registry.allIds).toContain('gears_vs');
+    expect(registry.allIds).toContain('broken_gear');
+    expect(registry.allIds).toContain('multiplier_gear');
   });
 
-  it('hat 11 normale, 1 wild, 3 bonus Symbole', () => {
+  it('hat 13 normale, 1 wild, 3 bonus Symbole', () => {
     const kinds = registry.all.map((s) => s.kind);
-    expect(kinds.filter((k) => k === 'normal').length).toBe(11);
+    expect(kinds.filter((k) => k === 'normal').length).toBe(13);
     expect(kinds.filter((k) => k === 'wild').length).toBe(1);
     expect(kinds.filter((k) => k === 'bonus').length).toBe(3);
   });

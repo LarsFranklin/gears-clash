@@ -223,6 +223,10 @@
                 "enum": ["straight", "diagonal", "zigzag", "v", "industrial", "hero"],
                 "description": "Visuelle Kategorie für Info-Modal-Darstellung."
               },
+              "enabled": {
+                "type": "boolean",
+                "description": "Linie aktiv (Default true). false blendet sie aus Auswertung und Info-Modal aus."
+              },
               "rows": {
                 "type": "array",
                 "minItems": 5,

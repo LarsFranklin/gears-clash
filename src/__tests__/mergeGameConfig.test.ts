@@ -14,4 +14,16 @@ describe('mergeGameConfig', () => {
     const patch: Partial<GameConfig> = { maxWin: 12 };
     expect(mergeGameConfig(patch, false)).toEqual(mergeGameConfig(patch, false));
   });
+
+  it('validate: true akzeptiert Default-Merge', () => {
+    expect(() => mergeGameConfig(undefined, undefined, { validate: true })).not.toThrow();
+  });
+
+  it('validate: true wirft bei ungültigem Patch', () => {
+    expect(() =>
+      mergeGameConfig({ grid: { reels: -1, rows: 5 } }, undefined, {
+        validate: true,
+      }),
+    ).toThrow();
+  });
 });

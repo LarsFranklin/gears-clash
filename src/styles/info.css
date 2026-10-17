@@ -1,0 +1,486 @@
+/* --- Info Modal --- */
+.gc-info-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.5rem, 3vw, 1.5rem);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.gc-info-modal--visible {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+}
+
+.gc-info-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.gc-info-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 680px;
+  max-height: min(90vh, 720px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  background: linear-gradient(
+    165deg,
+    rgba(40, 36, 46, 0.98) 0%,
+    rgba(18, 16, 22, 0.99) 100%
+  );
+  border: 1px solid rgba(90, 80, 70, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 220, 160, 0.08);
+  transform: scale(0.92) translateY(10px);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gc-info-modal--visible .gc-info-modal__panel {
+  transform: scale(1) translateY(0);
+}
+
+.gc-info-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid rgba(80, 70, 60, 0.4);
+}
+
+.gc-info-modal__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #f0d878, #c9a227);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gc-info-modal__close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: rgba(200, 190, 180, 0.65);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.gc-info-modal__close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.gc-info-modal__close:focus-visible {
+  outline: 2px solid rgba(201, 162, 39, 0.6);
+  outline-offset: 2px;
+}
+
+.gc-info-modal__tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 0.85rem;
+  border-bottom: 1px solid rgba(80, 70, 60, 0.3);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.gc-info-modal__tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(180, 170, 165, 0.7);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.gc-info-modal__tab:hover {
+  color: #e8e0d8;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.gc-info-modal__tab--active {
+  color: #f0d878;
+  background: rgba(201, 162, 39, 0.15);
+}
+
+.gc-info-modal__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.1rem 1.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 162, 39, 0.3) transparent;
+}
+
+.gc-info-modal__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gc-info-modal__content::-webkit-scrollbar-thumb {
+  background: rgba(201, 162, 39, 0.3);
+  border-radius: 3px;
+}
+
+/* --- Info Sections --- */
+.gc-info-section {
+  margin-bottom: 1.25rem;
+}
+
+.gc-info-section:last-child {
+  margin-bottom: 0;
+}
+
+.gc-info-section__title {
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 216, 120, 0.9);
+}
+
+.gc-info-section__hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: rgba(180, 175, 170, 0.7);
+}
+
+.gc-info-section__list {
+  margin: 0;
+  padding: 0 0 0 1.25rem;
+  font-size: 0.78rem;
+  line-height: 1.65;
+  color: rgba(230, 225, 220, 0.88);
+}
+
+.gc-info-section__item {
+  margin-bottom: 0.35rem;
+}
+
+.gc-info-section__item:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Paylines Grid + List --- */
+.gc-info-paylines {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 520px) {
+  .gc-info-paylines {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gc-info-paylines__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  width: fit-content;
+  padding: 0.5rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(80, 70, 60, 0.35);
+}
+
+.gc-info-grid__cell {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(30, 28, 35, 0.9);
+  border: 1px solid rgba(70, 65, 60, 0.4);
+  transition: all 0.2s ease;
+}
+
+.gc-info-grid__cell--highlighted {
+  background: rgba(201, 162, 39, 0.35);
+  border-color: rgba(240, 216, 120, 0.6);
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.4);
+}
+
+.gc-info-grid__pos {
+  font-size: 0.58rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(160, 155, 150, 0.55);
+}
+
+.gc-info-grid__cell--highlighted .gc-info-grid__pos {
+  color: #f0d878;
+}
+
+.gc-info-paylines__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+}
+
+.gc-info-payline {
+  appearance: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(35, 32, 40, 0.9);
+  border: 1px solid rgba(70, 65, 60, 0.4);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gc-info-payline:hover {
+  background: rgba(50, 45, 55, 0.95);
+  border-color: rgba(100, 90, 80, 0.5);
+}
+
+.gc-info-payline--active {
+  background: rgba(201, 162, 39, 0.2);
+  border-color: rgba(201, 162, 39, 0.5);
+}
+
+.gc-info-payline__id {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: rgba(201, 162, 39, 0.85);
+  min-width: 2rem;
+}
+
+.gc-info-payline__name {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: rgba(220, 215, 210, 0.85);
+  white-space: nowrap;
+}
+
+.gc-info-payline__type {
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  background: rgba(100, 90, 80, 0.3);
+  color: rgba(170, 165, 160, 0.7);
+}
+
+.gc-info-payline[data-line-type="straight"] .gc-info-payline__type {
+  background: rgba(100, 180, 100, 0.2);
+  color: rgba(160, 220, 160, 0.85);
+}
+
+.gc-info-payline[data-line-type="diagonal"] .gc-info-payline__type {
+  background: rgba(100, 150, 220, 0.2);
+  color: rgba(150, 190, 255, 0.85);
+}
+
+.gc-info-payline[data-line-type="zigzag"] .gc-info-payline__type {
+  background: rgba(220, 180, 100, 0.2);
+  color: rgba(255, 220, 150, 0.85);
+}
+
+.gc-info-payline[data-line-type="v"] .gc-info-payline__type {
+  background: rgba(180, 100, 180, 0.2);
+  color: rgba(230, 170, 230, 0.85);
+}
+
+.gc-info-payline[data-line-type="industrial"] .gc-info-payline__type {
+  background: rgba(220, 120, 80, 0.2);
+  color: rgba(255, 180, 140, 0.85);
+}
+
+.gc-info-payline[data-line-type="hero"] .gc-info-payline__type {
+  background: rgba(201, 162, 39, 0.25);
+  color: rgba(240, 216, 120, 0.9);
+}
+
+/* --- Paytable --- */
+.gc-info-paytable__tier {
+  margin-bottom: 1rem;
+}
+
+.gc-info-paytable__tier:last-child {
+  margin-bottom: 0;
+}
+
+.gc-info-paytable__tier-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(200, 195, 190, 0.7);
+}
+
+.gc-info-paytable__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.gc-info-paytable__head,
+.gc-info-paytable__cell {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(70, 65, 60, 0.3);
+}
+
+.gc-info-paytable__head {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(180, 175, 170, 0.6);
+}
+
+.gc-info-paytable__cell {
+  color: rgba(230, 225, 220, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+
+.gc-info-paytable__cell:first-child {
+  font-weight: 600;
+}
+
+.gc-info-paytable__row:not(.gc-info-paytable__row--head):hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.gc-info-paytable__symbol {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  border-radius: 5px;
+  background: rgba(60, 55, 65, 0.6);
+  font-weight: 600;
+}
+
+.gc-info-paytable__symbol--bonus {
+  background: rgba(180, 120, 60, 0.25);
+  color: #f0d878;
+}
+
+.gc-info-paytable__bonus {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gc-info-paytable__bonus-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(40, 35, 45, 0.7);
+  border: 1px solid rgba(80, 70, 60, 0.35);
+}
+
+.gc-info-paytable__bonus-info {
+  font-size: 0.72rem;
+  color: rgba(200, 195, 190, 0.8);
+}
+
+/* --- Bonus Info Cards --- */
+.gc-info-bonus {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(80, 70, 60, 0.4);
+  background: rgba(35, 32, 42, 0.7);
+}
+
+.gc-info-bonus:last-child {
+  margin-bottom: 0;
+}
+
+.gc-info-bonus[data-bonus-id] {
+  border-color: var(--gc-accent-border);
+  background: linear-gradient(
+    135deg,
+    var(--gc-accent-surface-top) 0%,
+    rgba(35, 32, 42, 0.7) 100%
+  );
+}
+
+.gc-info-bonus__title {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--gc-accent-bright);
+}
+
+.gc-info-bonus__desc {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: rgba(220, 215, 210, 0.8);
+}
+
+/* --- Info Button in Controls --- */
+.gc-controls-bar__info-btn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #3a3228 0%, #2a2218 100%);
+  border: 1px solid rgba(90, 70, 40, 0.5);
+  color: #e8d8c0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.gc-controls-bar__info-btn:hover {
+  background: linear-gradient(180deg, #4a4238 0%, #3a3228 100%);
+  border-color: rgba(201, 162, 39, 0.5);
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.2);
+}
+
+.gc-controls-bar__info-btn:focus-visible {
+  outline: 2px solid rgba(201, 162, 39, 0.6);
+  outline-offset: 2px;
+}

@@ -148,6 +148,35 @@ export function GearsClashEmbed() {
 }
 ```
 
+## Spielsteuerung
+
+Die Controls-Bar (Einsatzstufen, Autoplay, Turbo, Sound, Info) ist standardmäßig
+aktiv. Sichtbarkeit und Tastaturbedienung lassen sich pro Host steuern:
+
+```ts
+const game = new GearsClashGame({
+  container: root,
+  apiAdapter,
+  defaultBet: 100,
+  // Leertaste / Enter starten einen Spin, wenn das Spiel im Zustand `idle` ist
+  keyboardControls: true,
+  controls: {
+    betStepper: true,
+    autoSpin: true,
+    turbo: true,
+    sound: true,
+    info: true,
+  },
+});
+
+game.setBet(200);
+game.setTurbo(true);
+game.stopAutoSpin();
+```
+
+Während einer Bonus-Session sperrt das Spiel Controls-Bar und Spin-Button; nur
+das Session-Overlay bleibt bedienbar.
+
 ## Host-API (Beispiel)
 
 **`POST /api/games/gears-clash/spin`**
@@ -219,7 +248,7 @@ Alle drei Bonus-Modi haben **typisierte Payloads** (siehe `BonusSessionPayload` 
 }
 ```
 
-Zwei Gears tragen Multiplikatoren; der höhere wird auf eine komplette Reel als Full-Reel-Wild angewendet. Mehrere aktive Full-Reel-Wild-Multiplier addieren sich (Server-final).
+Zwei Gears tragen Multiplikatoren; der Sieger wird auf eine komplette Reel als Full-Reel-Wild angewendet. Als Freispiel-Session (`bonus_gears_clash`-Scatter) laufen 8 Freispiele mit erhöhter VS-Landerate; ein Retrigger gibt +4. Mehrere aktive Full-Reel-Wild-Multiplier addieren sich (Server-final).
 
 ### `heist_run` — Free Spins mit Sticky Wilds
 
@@ -232,14 +261,16 @@ Zwei Gears tragen Multiplikatoren; der höhere wird auf eine komplette Reel als 
       "currentSpin": 1,
       "stickyWilds": [
         { "reel": 0, "row": 1 },
-        { "reel": 3, "row": 2, "multiplier": 5 }
+        { "reel": 3, "row": 2 }
       ]
     }
   }
 }
 ```
 
-Wilds, die während der Free Spins erscheinen, bleiben sticky bis zum Ende der Bonus-Runde. Sticky-Wilds können optional Multiplier tragen.
+Wilds, die während der Free Spins landen, bleiben sticky bis zum Ende der Session. Die Freispiel-Tabelle nach Scatter-Anzahl: 3 → 8, 4 → 10, 5 → 12, 6 → 14, ab 7 bleibt es bei 14 (Hard Cap). Ein Retrigger (3+ Scatter in einer Freispielrunde) gibt +4.
+
+`stickyWilds[].multiplier` ist im Typ vorhanden, wird in v1 aber **nicht** befüllt (siehe [docs/bonuses/heist-run.md](docs/bonuses/heist-run.md) §9.1).
 
 ### `deadlock_mode` — Collection + Overdrive
 
@@ -261,7 +292,7 @@ Wilds, die während der Free Spins erscheinen, bleiben sticky bis zum Ende der B
 
 Phase 1 (Collection): leeres 5×5-Grid, 3 Lives, gesammelte Multiplier/Gear/Wild-Symbole landen im Overdrive-Storage. Mindestens ein Treffer pro Spin → Lives-Reset auf 3, sonst -1.
 
-Phase 2 (Overdrive): gesammelte Symbole werden auf das Grid verteilt, dann läuft ein finaler Reveal-Spin. Multiplier werden auf Gewinne angewendet — die finale Auszahlung kommt vom Server.
+Phase 2 (Overdrive): gesammelte Symbole werden auf das Grid verteilt, danach laufen 8 Freispiele mit garantierten Wilds pro Runde. Die gesammelten Multiplier ergeben einen additiven Gesamt-Multiplier — die finale Auszahlung kommt vom Server.
 
 ## Asset-Manifest (Themes / Skins)
 
@@ -317,8 +348,11 @@ Tritt während eines Spins ein Fehler auf, geht das Spiel in den `error`-State u
 
 ## Events
 
-- `ready`, `spin:start`, `spin:end` (`SpinResult`)
+- `ready`, `spin:start`, `spin:end` (`SpinResult`) — `spin:end` feuert bei **jedem** Spin, auch bei Bonus-Trigger- und Fortsetzungsrunden
 - `bonus:start` / `bonus:end` (`BonusSessionPayload`)
+- `bonus:spin` (`SpinResult`) — jede Runde innerhalb einer laufenden Session
+- `bonus:retrigger` (`BonusRetriggerEvent`) — zusätzliche Freispiele (+4 pro Ereignis)
+- `bonus:summary` (`BonusSummaryEvent`) — Session-Summe vor der Gutschrift
 - `balance:update` (`number`)
 - `error` (`unknown`)
 

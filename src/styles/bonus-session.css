@@ -1,0 +1,238 @@
+/*
+ * Bonus-Session-Overlay — ein Block für alle drei Modi.
+ * Theming läuft über `data-bonus`, nicht über kopierte Regelsätze.
+ */
+.gc-bonus-session {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+
+.gc-bonus-session--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* --- Banner: bleibt über dem Raster, blockiert die Sicht nicht --- */
+.gc-bonus-session__banner {
+  position: absolute;
+  top: clamp(0.35rem, 1.5vw, 0.85rem);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 1rem);
+  max-width: calc(100% - 1rem);
+  padding: 0.45rem clamp(0.65rem, 2.5vw, 1.1rem);
+  border-radius: 999px;
+  border: 1px solid var(--gc-bonus-accent, rgba(200, 170, 120, 0.5));
+  background: linear-gradient(
+    180deg,
+    rgba(18, 20, 26, 0.94) 0%,
+    rgba(10, 11, 15, 0.96) 100%
+  );
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.55),
+    0 0 22px var(--gc-bonus-glow, rgba(200, 170, 120, 0.18));
+  backdrop-filter: blur(3px);
+}
+
+.gc-bonus-session__banner-title {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gc-bonus-accent, #e8c890);
+  white-space: nowrap;
+}
+
+.gc-bonus-session__stats {
+  display: flex;
+  gap: clamp(0.5rem, 2vw, 1rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+}
+
+.gc-bonus-session__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+
+.gc-bonus-session__stat-k {
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(220, 214, 205, 0.5);
+  white-space: nowrap;
+}
+
+.gc-bonus-session__stat-v {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f4efe6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Dialog: Phasenwechsel, Retrigger, Abschluss --- */
+.gc-bonus-session__dialog {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.5rem, 3vw, 1.25rem);
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(0, 0, 0, 0.4) 0%,
+    rgba(0, 0, 0, 0.82) 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+
+.gc-bonus-session__dialog--visible {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+}
+
+.gc-bonus-session__card {
+  width: 100%;
+  max-width: 24rem;
+  padding: clamp(1rem, 3vw, 1.6rem);
+  border-radius: 14px;
+  border: 1px solid var(--gc-bonus-accent, rgba(200, 170, 120, 0.55));
+  background: linear-gradient(
+    165deg,
+    var(--gc-bonus-card-top, rgba(34, 30, 26, 0.97)) 0%,
+    var(--gc-bonus-card-bottom, rgba(14, 13, 12, 0.98)) 100%
+  );
+  box-shadow:
+    0 18px 52px rgba(0, 0, 0, 0.6),
+    0 0 46px var(--gc-bonus-glow, rgba(200, 170, 120, 0.2));
+  text-align: center;
+  transform: scale(0.94);
+  transition: transform 0.22s ease;
+}
+
+.gc-bonus-session__dialog--visible .gc-bonus-session__card {
+  transform: scale(1);
+}
+
+.gc-bonus-session__card-title {
+  margin: 0;
+  font-size: clamp(1.05rem, 3.4vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gc-bonus-accent, #f0d8a8);
+}
+
+.gc-bonus-session__card-text {
+  margin: 0.6rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: rgba(238, 232, 222, 0.82);
+}
+
+.gc-bonus-session__card-extra:empty {
+  display: none;
+}
+
+.gc-bonus-session__action {
+  margin-top: 1rem;
+  min-width: 10rem;
+  padding: 0.6rem 1.4rem;
+  border-radius: 9px;
+  border: 1px solid var(--gc-bonus-accent, rgba(255, 200, 120, 0.55));
+  background: var(--gc-bonus-button, rgba(58, 44, 24, 0.92));
+  color: #fff6e6;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.12s ease;
+}
+
+.gc-bonus-session__action:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.gc-bonus-session__action:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.gc-bonus-session__action:focus-visible {
+  outline: 2px solid var(--gc-bonus-accent, #ffc878);
+  outline-offset: 2px;
+}
+
+.gc-bonus-session__action[hidden] {
+  display: none;
+}
+
+/* --- Battle-Puls während einer Gears-Clash-Show --- */
+.gc-bonus-session--battle .gc-bonus-session__banner {
+  animation: gc-bonus-session-pulse 0.34s ease-in-out infinite;
+}
+
+@keyframes gc-bonus-session-pulse {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.035);
+  }
+}
+
+/*
+ * Modus-Theming — Akzent und Glow kommen aus `tokens.css` (`data-bonus`),
+ * hier stehen nur die modusspezifischen Kartentöne.
+ */
+.gc-bonus-session {
+  --gc-bonus-accent: var(--gc-accent-bright, #e8c890);
+  --gc-bonus-glow: var(--gc-accent-glow, rgba(200, 170, 120, 0.18));
+}
+
+.gc-bonus-session[data-bonus] {
+  --gc-bonus-card-top: var(--gc-accent-surface-top);
+  --gc-bonus-card-bottom: var(--gc-accent-surface-bottom);
+  --gc-bonus-button: var(--gc-accent-surface-raised);
+}
+
+@media (max-width: 560px) {
+  .gc-bonus-session__banner {
+    gap: 0.5rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .gc-bonus-session__banner-title {
+    display: none;
+  }
+
+  .gc-bonus-session__stat-v {
+    font-size: 0.82rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gc-bonus-session--battle .gc-bonus-session__banner {
+    animation: none;
+  }
+
+  .gc-bonus-session__card {
+    transition: none;
+    transform: none;
+  }
+}

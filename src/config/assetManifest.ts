@@ -37,6 +37,8 @@ export const defaultAssetManifest: AssetManifest = {
     wild_gear: '/assets/symbols/wild_gear.png',
     /** PNG optional — fehlt → prozeduraler VS-Fallback im Renderer. */
     gears_vs: '/assets/symbols/gears_vs.png',
+    broken_gear: '/assets/symbols/broken_gear.png',
+    multiplier_gear: '/assets/symbols/multiplier_gear.png',
     bonus_gears_clash: '/assets/symbols/bonus_gears_clash.png',
     bonus_heist_run: '/assets/symbols/bonus_heist_run.png',
     bonus_deadlock_mode: '/assets/symbols/bonus_deadlock_mode.png',

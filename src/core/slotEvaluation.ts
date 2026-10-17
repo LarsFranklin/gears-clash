@@ -2,6 +2,7 @@ import type {
   BonusId,
   GameConfig,
   SlotMathConfig,
+  SlotPaylineDefinition,
   SpinDisplayHighlight,
   SpinDisplayWinLine,
   SymbolKind,
@@ -49,6 +50,16 @@ function firstWildSymbolIdForPayline(cfg: GameConfig, math: SlotMathConfig): str
   return null;
 }
 
+/**
+ * Nur aktive Linien werden ausgewertet und angezeigt. `enabled` ist optional —
+ * fehlt es, gilt die Linie als aktiv (Rückwärtskompatibilität bestehender Configs).
+ */
+export function activePaylines(
+  math: SlotMathConfig,
+): readonly SlotPaylineDefinition[] {
+  return math.paylines.filter((line) => line.enabled !== false);
+}
+
 /** Links-nach-Rechts; Wild gilt als Gleiches zur Pay-Symbolkette → 2×Pay + Wild = 3 Walzen Treffer bei minMatch 3. */
 function evaluatePayline(
   reelStops: string[][],
@@ -77,7 +88,8 @@ function evaluatePayline(
   let runLen = 0;
 
   for (const id of ids) {
-    if (symbolKindFor(defs, id) === 'bonus') return null;
+    /** Scatter zahlen nicht auf Linien — sie beenden die Kette, verwerfen sie aber nicht. */
+    if (symbolKindFor(defs, id) === 'bonus') break;
 
     if (paySymId === null) {
       if (symbolKindFor(defs, id) === 'wild') {
@@ -139,9 +151,17 @@ function resolveScatterBonus(
   reelStops: string[][],
   math: SlotMathConfig,
 ): BonusId | null {
+  /**
+   * `bonusTriggers.bonusSymbolIds` ist die Whitelist der auslösenden Scatter.
+   * Ist sie leer, zählt jedes Symbol mit `kind: 'bonus'` — so bleiben ältere
+   * Host-Configs ohne Whitelist unverändert lauffähig.
+   */
+  const allowed = new Set(cfg.bonusTriggers?.bonusSymbolIds ?? []);
   const seen = new Set<BonusId>();
   for (const s of cfg.symbols) {
-    if (s.kind === 'bonus' && s.bonusId) seen.add(s.bonusId);
+    if (s.kind !== 'bonus' || !s.bonusId) continue;
+    if (allowed.size > 0 && !allowed.has(s.id)) continue;
+    seen.add(s.bonusId);
   }
 
   let bestCnt = -1;
@@ -188,7 +208,7 @@ export function evaluateDemoBaseSpin(
 
   const defs = mapSymbols(cfg);
   const winLines: SpinDisplayWinLine[] = [];
-  for (const ln of math.paylines) {
+  for (const ln of activePaylines(math)) {
     const w = evaluatePayline(reelStops, cfg, math, bet, ln, defs);
     if (w) winLines.push(w);
   }

@@ -9,8 +9,8 @@ const MAX_PARTICLES_ULTRA = 120;
 interface SpeedLine {
   x: number;
   y: number;
-  length: number;
-  alpha: number;
+  /** Zufallsanteil (0…1), aus dem Länge und Deckkraft pro Intensität abgeleitet werden. */
+  variance: number;
   speed: number;
 }
 
@@ -47,6 +47,7 @@ export class EffectsLayer {
   private particlesG = new Graphics();
 
   private speedLines: Map<number, SpeedLine[]> = new Map();
+  private speedLineIntensity: Map<number, number> = new Map();
   private reelFlashes: ReelFlash[] = [];
   private particles: Particle[] = [];
   /** Walzen mit noch nicht eingerolltem Scatter-Potenzial („2 gleiche schon gelandet"). */
@@ -117,37 +118,57 @@ export class EffectsLayer {
     this.gridH = gridH;
   }
 
+  /**
+   * Idempotent: pro Walze werden die Linien **einmal** erzeugt und danach nur noch
+   * in Anzahl und Intensität nachgeführt. Ein Neuwürfeln pro Frame würde die
+   * Linien flackern lassen und jeden Frame Objekte erzeugen.
+   */
   startSpeedLines(reelIndex: number, intensity: number): void {
     if (intensity <= 0) {
       this.speedLines.delete(reelIndex);
       return;
     }
 
-    const lines: SpeedLine[] = [];
-    const reelX = reelIndex * (this.cellSize + this.gap);
     const lineCount = Math.min(
       this.speedLineCap,
-      Math.floor(2 + intensity * Math.max(1, this.speedLineCap - 1)),
+      Math.max(1, Math.floor(2 + intensity * Math.max(1, this.speedLineCap - 1))),
     );
+    this.speedLineIntensity.set(reelIndex, intensity);
 
+    const existing = this.speedLines.get(reelIndex);
+    if (existing) {
+      if (existing.length > lineCount) existing.length = lineCount;
+      while (existing.length < lineCount) {
+        existing.push(this.createSpeedLine(reelIndex));
+      }
+      return;
+    }
+
+    const lines: SpeedLine[] = [];
     for (let i = 0; i < lineCount; i++) {
-      lines.push({
-        x: reelX + Math.random() * this.cellSize,
-        y: Math.random() * this.gridH,
-        length: 20 + Math.random() * 40 * intensity,
-        alpha: 0.15 + Math.random() * 0.25 * intensity,
-        speed: 800 + Math.random() * 600,
-      });
+      lines.push(this.createSpeedLine(reelIndex));
     }
     this.speedLines.set(reelIndex, lines);
   }
 
+  private createSpeedLine(reelIndex: number): SpeedLine {
+    const reelX = reelIndex * (this.cellSize + this.gap);
+    return {
+      x: reelX + Math.random() * this.cellSize,
+      y: Math.random() * this.gridH,
+      variance: Math.random(),
+      speed: 800 + Math.random() * 600,
+    };
+  }
+
   stopSpeedLines(reelIndex: number): void {
     this.speedLines.delete(reelIndex);
+    this.speedLineIntensity.delete(reelIndex);
   }
 
   stopAllSpeedLines(): void {
     this.speedLines.clear();
+    this.speedLineIntensity.clear();
   }
 
   /** Aktive Scatter-Jagd: goldene Frames + Funken auf noch rollenden Walzen. */
@@ -248,11 +269,15 @@ export class EffectsLayer {
 
     const dtSec = dtMs / 1000;
 
-    for (const [, lines] of this.speedLines) {
+    for (const [reelIndex, lines] of this.speedLines) {
+      const intensity = this.speedLineIntensity.get(reelIndex) ?? 1;
       for (const line of lines) {
+        const length = 20 + line.variance * 40 * intensity;
+        const alpha = 0.15 + line.variance * 0.25 * intensity;
+
         line.y += line.speed * dtSec;
-        if (line.y > this.gridH + line.length) {
-          line.y = -line.length;
+        if (line.y > this.gridH + length) {
+          line.y = -length;
           line.x =
             Math.floor(line.x / (this.cellSize + this.gap)) *
               (this.cellSize + this.gap) +
@@ -260,12 +285,12 @@ export class EffectsLayer {
         }
 
         g.moveTo(line.x, line.y);
-        g.lineTo(line.x, line.y + line.length);
-        g.stroke({ width: 2, color: 0xffffff, alpha: line.alpha * 0.3 });
+        g.lineTo(line.x, line.y + length);
+        g.stroke({ width: 2, color: 0xffffff, alpha: alpha * 0.3 });
 
-        g.moveTo(line.x, line.y + line.length * 0.2);
-        g.lineTo(line.x, line.y + line.length * 0.8);
-        g.stroke({ width: 1, color: 0xf0e8c0, alpha: line.alpha });
+        g.moveTo(line.x, line.y + length * 0.2);
+        g.lineTo(line.x, line.y + length * 0.8);
+        g.stroke({ width: 1, color: 0xf0e8c0, alpha });
       }
     }
   }
@@ -453,6 +478,7 @@ export class EffectsLayer {
 
   clear(): void {
     this.speedLines.clear();
+    this.speedLineIntensity.clear();
     this.reelFlashes = [];
     this.particles = [];
     this.scatterAnticipationReels.clear();

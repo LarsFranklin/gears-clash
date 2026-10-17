@@ -1,4 +1,14 @@
-import type { BonusSessionPayload, SpinRequest, SpinResult } from '../config/types';
+import type {
+  BonusSessionMeta,
+  BonusSessionPayload,
+  DeadlockCollectedSymbol,
+  DeadlockModePayload,
+  GearsClashPayload,
+  HeistRunPayload,
+  HeistRunStickyWild,
+  SpinRequest,
+  SpinResult,
+} from '../config/types';
 import {
   InsufficientBalanceError,
   InvalidResponseError,
@@ -37,22 +47,51 @@ function defaultMapSpinResponse(raw: unknown): SpinResult {
   }
   const spinId = String(raw.spinId ?? '');
   const reelStops = raw.reelStops;
-  const balanceAfter = Number(raw.balanceAfter);
-  const winAmount = Number(raw.winAmount ?? 0);
-  const bonus = validateBonusPayload(raw.bonus);
+  // Number(null) ist 0 — leere Felder dürfen keinen Kontostand von 0 vortäuschen.
+  const balanceAfter =
+    raw.balanceAfter === null || raw.balanceAfter === undefined
+      ? Number.NaN
+      : Number(raw.balanceAfter);
+  const winAmount = raw.winAmount === null ? Number.NaN : Number(raw.winAmount ?? 0);
 
   if (!spinId || !Array.isArray(reelStops)) {
     throw new InvalidResponseError('Spin-Antwort fehlt spinId oder reelStops.');
   }
-  const stops = reelStops.map((col) => {
+  if (reelStops.length === 0) {
+    throw new InvalidResponseError('reelStops darf nicht leer sein.');
+  }
+  let rowCount = -1;
+  const stops = reelStops.map((col, index) => {
     if (!Array.isArray(col)) {
       throw new InvalidResponseError('reelStops muss string[][] sein.');
     }
+    if (rowCount === -1) rowCount = col.length;
+    if (col.length !== rowCount) {
+      throw new InvalidResponseError(
+        `reelStops[${index}] hat ${col.length} Zeilen, erwartet ${rowCount} — Raster ist nicht rechteckig.`,
+      );
+    }
+    if (col.length === 0) {
+      throw new InvalidResponseError('reelStops-Spalten dürfen nicht leer sein.');
+    }
     return col.map((cell) => String(cell));
   });
-  if (Number.isNaN(balanceAfter)) {
-    throw new InvalidResponseError('balanceAfter ist keine Zahl.');
+  if (!Number.isFinite(balanceAfter)) {
+    throw new InvalidResponseError('balanceAfter ist keine endliche Zahl.');
   }
+  if (!Number.isFinite(winAmount) || winAmount < 0) {
+    throw new InvalidResponseError('winAmount muss eine endliche Zahl >= 0 sein.');
+  }
+
+  const bonus = validateBonusPayload(raw.bonus, stops.length, rowCount);
+
+  const inGrid = (reel: number, row: number): boolean =>
+    Number.isInteger(reel) &&
+    Number.isInteger(row) &&
+    reel >= 0 &&
+    reel < stops.length &&
+    row >= 0 &&
+    row < rowCount;
 
   const highlights = raw.displayHighlights;
   let displayHighlights: SpinResult['displayHighlights'] = undefined;
@@ -62,7 +101,7 @@ function defaultMapSpinResponse(raw: unknown): SpinResult {
         if (!isPlain(h)) return null;
         const reel = Number(h.reel);
         const row = Number(h.row);
-        if (Number.isNaN(reel) || Number.isNaN(row)) return null;
+        if (!inGrid(reel, row)) return null;
         return { reel, row };
       })
       .filter((x): x is { reel: number; row: number } => x !== null);
@@ -75,13 +114,13 @@ function defaultMapSpinResponse(raw: unknown): SpinResult {
     for (const line of winLines) {
       if (!isPlain(line) || !Array.isArray(line.points)) continue;
       const amount = Number(line.amount ?? 0);
-      if (Number.isNaN(amount) || amount <= 0) continue;
+      if (!Number.isFinite(amount) || amount <= 0) continue;
       const points: { reel: number; row: number }[] = [];
       for (const p of line.points) {
         if (!isPlain(p)) continue;
         const reel = Number(p.reel);
         const row = Number(p.row);
-        if (Number.isNaN(reel) || Number.isNaN(row)) continue;
+        if (!inGrid(reel, row)) continue;
         points.push({ reel, row });
       }
       if (points.length < 2) continue;
@@ -115,7 +154,177 @@ function isPlain(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-function validateBonusPayload(bonus: unknown): BonusSessionPayload | null {
+function requireFiniteNumber(value: unknown, path: string): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    throw new InvalidResponseError(`${path} muss eine endliche Zahl sein.`);
+  }
+  return n;
+}
+
+function requireGridIndex(
+  value: unknown,
+  path: string,
+  max: number,
+): number {
+  const n = requireFiniteNumber(value, path);
+  if (!Number.isInteger(n) || n < 0 || n >= max) {
+    throw new InvalidResponseError(`${path} liegt außerhalb von 0…${max - 1}.`);
+  }
+  return n;
+}
+
+function validateGearsClashPayload(p: Record<string, unknown>, reels: number): GearsClashPayload {
+  const gearA = p.gearA;
+  const gearB = p.gearB;
+  if (!isPlain(gearA) || !isPlain(gearB)) {
+    throw new InvalidResponseError('gears_clash braucht gearA und gearB als Objekte.');
+  }
+  const out: GearsClashPayload = {
+    gearA: { multiplier: requireFiniteNumber(gearA.multiplier, 'gearA.multiplier') },
+    gearB: { multiplier: requireFiniteNumber(gearB.multiplier, 'gearB.multiplier') },
+  };
+  if (p.winnerReel !== undefined && p.winnerReel !== null) {
+    out.winnerReel = requireGridIndex(p.winnerReel, 'bonus.payload.winnerReel', reels);
+  }
+  if (p.winnerMultiplier !== undefined && p.winnerMultiplier !== null) {
+    out.winnerMultiplier = requireFiniteNumber(
+      p.winnerMultiplier,
+      'bonus.payload.winnerMultiplier',
+    );
+  }
+  return out;
+}
+
+function validateHeistRunPayload(
+  p: Record<string, unknown>,
+  reels: number,
+  rows: number,
+): HeistRunPayload {
+  const freeSpinsAwarded = requireFiniteNumber(
+    p.freeSpinsAwarded,
+    'bonus.payload.freeSpinsAwarded',
+  );
+  if (!Number.isInteger(freeSpinsAwarded) || freeSpinsAwarded < 0) {
+    throw new InvalidResponseError(
+      'bonus.payload.freeSpinsAwarded muss eine Ganzzahl >= 0 sein.',
+    );
+  }
+  const out: HeistRunPayload = { freeSpinsAwarded };
+  if (p.currentSpin !== undefined && p.currentSpin !== null) {
+    out.currentSpin = requireFiniteNumber(p.currentSpin, 'bonus.payload.currentSpin');
+  }
+  if (p.stickyWilds !== undefined && p.stickyWilds !== null) {
+    if (!Array.isArray(p.stickyWilds)) {
+      throw new InvalidResponseError('bonus.payload.stickyWilds muss ein Array sein.');
+    }
+    out.stickyWilds = p.stickyWilds.map((w, i) => {
+      if (!isPlain(w)) {
+        throw new InvalidResponseError(`stickyWilds[${i}] muss ein Objekt sein.`);
+      }
+      const cell: HeistRunStickyWild = {
+        reel: requireGridIndex(w.reel, `stickyWilds[${i}].reel`, reels),
+        row: requireGridIndex(w.row, `stickyWilds[${i}].row`, rows),
+      };
+      if (w.multiplier !== undefined && w.multiplier !== null) {
+        cell.multiplier = requireFiniteNumber(
+          w.multiplier,
+          `stickyWilds[${i}].multiplier`,
+        );
+      }
+      return cell;
+    });
+  }
+  return out;
+}
+
+function validateDeadlockPayload(
+  p: Record<string, unknown>,
+  reels: number,
+  rows: number,
+): DeadlockModePayload {
+  const phase = p.phase;
+  if (phase !== 'collection' && phase !== 'overdrive') {
+    throw new InvalidResponseError(
+      `bonus.payload.phase muss "collection" oder "overdrive" sein, erhielt: ${String(phase)}.`,
+    );
+  }
+  const out: DeadlockModePayload = { phase };
+  if (p.lives !== undefined && p.lives !== null) {
+    out.lives = requireFiniteNumber(p.lives, 'bonus.payload.lives');
+  }
+  if (p.remainingSpins !== undefined && p.remainingSpins !== null) {
+    out.remainingSpins = requireFiniteNumber(
+      p.remainingSpins,
+      'bonus.payload.remainingSpins',
+    );
+  }
+  if (p.collectedSymbols !== undefined && p.collectedSymbols !== null) {
+    if (!Array.isArray(p.collectedSymbols)) {
+      throw new InvalidResponseError(
+        'bonus.payload.collectedSymbols muss ein Array sein.',
+      );
+    }
+    out.collectedSymbols = p.collectedSymbols.map((c, i) => {
+      if (!isPlain(c) || typeof c.symbolId !== 'string' || !c.symbolId) {
+        throw new InvalidResponseError(
+          `collectedSymbols[${i}] braucht eine symbolId.`,
+        );
+      }
+      const entry: DeadlockCollectedSymbol = {
+        reel: requireGridIndex(c.reel, `collectedSymbols[${i}].reel`, reels),
+        row: requireGridIndex(c.row, `collectedSymbols[${i}].row`, rows),
+        symbolId: c.symbolId,
+      };
+      if (c.multiplier !== undefined && c.multiplier !== null) {
+        entry.multiplier = requireFiniteNumber(
+          c.multiplier,
+          `collectedSymbols[${i}].multiplier`,
+        );
+      }
+      return entry;
+    });
+  }
+  return out;
+}
+
+function validateSessionMeta(raw: unknown): BonusSessionMeta | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!isPlain(raw)) {
+    throw new InvalidResponseError('bonus.session muss ein Objekt sein.');
+  }
+  const meta: BonusSessionMeta = {
+    remainingSpins: requireFiniteNumber(
+      raw.remainingSpins,
+      'bonus.session.remainingSpins',
+    ),
+    totalSpins: requireFiniteNumber(raw.totalSpins, 'bonus.session.totalSpins'),
+    roundsPlayed: requireFiniteNumber(
+      raw.roundsPlayed,
+      'bonus.session.roundsPlayed',
+    ),
+    bankedWin: requireFiniteNumber(raw.bankedWin, 'bonus.session.bankedWin'),
+    complete: Boolean(raw.complete),
+  };
+  if (raw.retriggerAwarded !== undefined && raw.retriggerAwarded !== null) {
+    meta.retriggerAwarded = requireFiniteNumber(
+      raw.retriggerAwarded,
+      'bonus.session.retriggerAwarded',
+    );
+  }
+  return meta;
+}
+
+/**
+ * Prüft Bonus-Daten feldweise gegen den Payload-Vertrag statt sie blind zu casten.
+ * Kaputte Server-Daten sollen als `InvalidResponseError` auffallen, nicht später
+ * als undefined-Zugriff im Renderer.
+ */
+function validateBonusPayload(
+  bonus: unknown,
+  reels: number,
+  rows: number,
+): BonusSessionPayload | null {
   if (bonus === null || bonus === undefined) {
     return null;
   }
@@ -123,7 +332,10 @@ function validateBonusPayload(bonus: unknown): BonusSessionPayload | null {
     throw new InvalidResponseError('bonus muss ein Objekt oder null sein.');
   }
   const type = bonus.type;
-  if (typeof type !== 'string' || !VALID_BONUS_TYPES.includes(type as typeof VALID_BONUS_TYPES[number])) {
+  if (
+    typeof type !== 'string' ||
+    !VALID_BONUS_TYPES.includes(type as (typeof VALID_BONUS_TYPES)[number])
+  ) {
     throw new InvalidResponseError(
       `bonus.type muss einer von ${VALID_BONUS_TYPES.join(', ')} sein, erhielt: ${String(type)}.`,
     );
@@ -132,7 +344,28 @@ function validateBonusPayload(bonus: unknown): BonusSessionPayload | null {
   if (!isPlain(payload)) {
     throw new InvalidResponseError('bonus.payload muss ein Objekt sein.');
   }
-  return { type, payload } as unknown as BonusSessionPayload;
+  const session = validateSessionMeta(bonus.session);
+
+  switch (type) {
+    case 'gears_clash':
+      return {
+        type,
+        payload: validateGearsClashPayload(payload, reels),
+        ...(session ? { session } : {}),
+      };
+    case 'heist_run':
+      return {
+        type,
+        payload: validateHeistRunPayload(payload, reels, rows),
+        ...(session ? { session } : {}),
+      };
+    default:
+      return {
+        type: 'deadlock_mode',
+        payload: validateDeadlockPayload(payload, reels, rows),
+        ...(session ? { session } : {}),
+      };
+  }
 }
 
 export class HttpGameApiAdapter implements GameApiAdapter {

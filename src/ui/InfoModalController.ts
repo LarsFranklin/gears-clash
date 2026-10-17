@@ -1,4 +1,5 @@
 import type { GameConfig, SlotPaylineDefinition, BonusId } from '../config/types';
+import { activePaylines } from '../core/slotEvaluation';
 
 type InfoTab = 'rules' | 'paylines' | 'paytable' | 'bonus';
 
@@ -33,6 +34,7 @@ export class InfoModalController {
   private currentTab: InfoTab = 'rules';
   private abortController: AbortController | null = null;
   private highlightedLine: number = -1;
+  private lastFocused: HTMLElement | null = null;
 
   constructor(config: GameConfig) {
     this.config = config;
@@ -49,6 +51,7 @@ export class InfoModalController {
     this.container.setAttribute('role', 'dialog');
     this.container.setAttribute('aria-modal', 'true');
     this.container.setAttribute('aria-labelledby', 'gc-info-title');
+    this.container.setAttribute('aria-hidden', 'true');
 
     this.render();
     parent.appendChild(this.container);
@@ -111,41 +114,44 @@ export class InfoModalController {
 
   private renderRules(): string {
     const { grid, slotMath } = this.config;
-    const lineCount = slotMath?.paylines.length ?? 20;
+    const lineCount = this.activePaylines().length || (slotMath ? 0 : 20);
 
+    return [
+      this.renderRuleSection('Wie man spielt', [
+        `Gears Clash ist ein ${grid.reels}×${grid.rows} Video-Slot mit ${lineCount} Gewinnlinien.`,
+        'Gewinne werden von links nach rechts auf aktiven Gewinnlinien ausgewertet.',
+        `Mindestens ${slotMath?.minMatchLength ?? 3} gleiche Symbole in Folge ergeben einen Gewinn.`,
+        'Wild-Symbole (Overdrive Gear) ersetzen alle regulären Symbole.',
+        'Nur der höchste Gewinn pro Linie wird ausgezahlt.',
+        'Gleichzeitige Gewinne auf verschiedenen Linien werden addiert.',
+      ]),
+      this.renderRuleSection('Scatter & Bonus', [
+        `${slotMath?.scatterMinBonus ?? 3}+ Bonus-Symbole auf dem Grid lösen einen Bonus-Modus aus.`,
+        'Es gibt 3 verschiedene Bonus-Symbole, die jeweils einen eigenen Modus aktivieren.',
+        'Bei mehreren Bonus-Typen mit gleicher Anzahl: Gears Clash > Heist Run > Deadlock Mode.',
+      ]),
+      this.renderRuleSection('Einsatz & Auszahlung', [
+        `Der Gesamteinsatz wird auf alle ${lineCount} Linien verteilt.`,
+        'Auszahlungen werden mit dem Linieneinsatz multipliziert.',
+        `Der maximale Gewinn ist auf ${this.config.maxWin.toLocaleString('de-DE')} Münzen begrenzt.`,
+      ]),
+    ].join('');
+  }
+
+  private renderRuleSection(title: string, items: string[]): string {
+    const list = items
+      .map((text) => `<li class="gc-info-section__item">${text}</li>`)
+      .join('');
     return `
       <section class="gc-info-section">
-        <h3 class="gc-info-section__title">Wie man spielt</h3>
-        <ul class="gc-info-section__list">
-          <li>Gears Clash ist ein ${grid.reels}×${grid.rows} Video-Slot mit ${lineCount} Gewinnlinien.</li>
-          <li>Gewinne werden von links nach rechts auf aktiven Gewinnlinien ausgewertet.</li>
-          <li>Mindestens ${slotMath?.minMatchLength ?? 3} gleiche Symbole in Folge ergeben einen Gewinn.</li>
-          <li>Wild-Symbole (Overdrive Gear) ersetzen alle regulären Symbole.</li>
-          <li>Nur der höchste Gewinn pro Linie wird ausgezahlt.</li>
-          <li>Gleichzeitige Gewinne auf verschiedenen Linien werden addiert.</li>
-        </ul>
-      </section>
-      <section class="gc-info-section">
-        <h3 class="gc-info-section__title">Scatter & Bonus</h3>
-        <ul class="gc-info-section__list">
-          <li>${slotMath?.scatterMinBonus ?? 3}+ Bonus-Symbole auf dem Grid lösen einen Bonus-Modus aus.</li>
-          <li>Es gibt 3 verschiedene Bonus-Symbole, die jeweils einen eigenen Modus aktivieren.</li>
-          <li>Bei mehreren Bonus-Typen mit gleicher Anzahl: Gears Clash > Heist Run > Deadlock Mode.</li>
-        </ul>
-      </section>
-      <section class="gc-info-section">
-        <h3 class="gc-info-section__title">Einsatz & Auszahlung</h3>
-        <ul class="gc-info-section__list">
-          <li>Der Gesamteinsatz wird auf alle ${lineCount} Linien verteilt.</li>
-          <li>Auszahlungen werden mit dem Linieneinsatz multipliziert.</li>
-          <li>Der maximale Gewinn ist auf ${this.config.maxWin.toLocaleString('de-DE')} Münzen begrenzt.</li>
-        </ul>
+        <h3 class="gc-info-section__title">${title}</h3>
+        <ul class="gc-info-section__list">${list}</ul>
       </section>
     `;
   }
 
   private renderPaylines(): string {
-    const paylines = this.config.slotMath?.paylines ?? [];
+    const paylines = this.activePaylines();
     const { rows } = this.config.grid;
 
     return `
@@ -255,23 +261,28 @@ export class InfoModalController {
         <h4 class="gc-info-paytable__tier-title">${title}</h4>
         <table class="gc-info-paytable__table">
           <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>3×</th>
-              <th>4×</th>
-              <th>5×</th>
+            <tr class="gc-info-paytable__row gc-info-paytable__row--head">
+              <th class="gc-info-paytable__head">Symbol</th>
+              <th class="gc-info-paytable__head">3×</th>
+              <th class="gc-info-paytable__head">4×</th>
+              <th class="gc-info-paytable__head">5×</th>
             </tr>
           </thead>
           <tbody>
             ${symbols
               .map((s) => {
                 const mults = math.lineMultipliersBySymbolId[s.id] ?? [0, 0, 0];
+                const cells = mults
+                  .slice(0, 3)
+                  .map(
+                    (m) =>
+                      `<td class="gc-info-paytable__cell">${this.formatMultiplier(m)}</td>`,
+                  )
+                  .join('');
                 return `
-                  <tr>
-                    <td class="gc-info-paytable__symbol">${s.label}</td>
-                    <td>${this.formatMultiplier(mults[0])}</td>
-                    <td>${this.formatMultiplier(mults[1])}</td>
-                    <td>${this.formatMultiplier(mults[2])}</td>
+                  <tr class="gc-info-paytable__row">
+                    <td class="gc-info-paytable__cell gc-info-paytable__symbol">${s.label}</td>
+                    ${cells}
                   </tr>
                 `;
               })
@@ -344,12 +355,22 @@ export class InfoModalController {
     this.currentTab = tab;
     this.highlightedLine = -1;
     this.render();
+    // `render()` ersetzt das Markup — der Fokus muss zurück auf den aktiven Tab.
+    this.container
+      ?.querySelector<HTMLElement>(`.gc-info-modal__tab[data-tab="${tab}"]`)
+      ?.focus();
+  }
+
+  /** Deaktivierte Linien (`enabled: false`) tauchen in der Info nicht auf. */
+  private activePaylines(): readonly SlotPaylineDefinition[] {
+    const math = this.config.slotMath;
+    return math ? activePaylines(math) : [];
   }
 
   private highlightLine(idx: number): void {
     if (!this.container) return;
 
-    const paylines = this.config.slotMath?.paylines ?? [];
+    const paylines = this.activePaylines();
     const { reels } = this.config.grid;
 
     this.container.querySelectorAll('.gc-info-grid__cell--highlighted').forEach((cell) => {
@@ -387,19 +408,61 @@ export class InfoModalController {
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
+    if (!this.isVisible()) return;
     if (e.key === 'Escape') {
+      e.stopPropagation();
       this.hide();
+      return;
+    }
+    if (e.key === 'Tab') {
+      this.trapFocus(e);
     }
   }
 
+  /** Fokus bleibt im Dialog — Tab am Ende springt an den Anfang und umgekehrt. */
+  private trapFocus(e: KeyboardEvent): void {
+    const focusables = this.focusableElements();
+    if (focusables.length === 0) return;
+    const first = focusables[0]!;
+    const last = focusables[focusables.length - 1]!;
+    const active = document.activeElement as HTMLElement | null;
+
+    if (e.shiftKey && (active === first || !this.container?.contains(active))) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  private focusableElements(): HTMLElement[] {
+    if (!this.container) return [];
+    return Array.from(
+      this.container.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+  }
+
   show(): void {
-    this.container?.classList.add('gc-info-modal--visible');
-    const closeBtn = this.container?.querySelector<HTMLElement>('.gc-info-modal__close');
+    if (!this.container || this.isVisible()) return;
+    this.lastFocused = document.activeElement as HTMLElement | null;
+    this.container.classList.add('gc-info-modal--visible');
+    this.container.setAttribute('aria-hidden', 'false');
+    const closeBtn = this.container.querySelector<HTMLElement>('.gc-info-modal__close');
     closeBtn?.focus();
   }
 
   hide(): void {
-    this.container?.classList.remove('gc-info-modal--visible');
+    if (!this.container) return;
+    const wasVisible = this.isVisible();
+    this.container.classList.remove('gc-info-modal--visible');
+    this.container.setAttribute('aria-hidden', 'true');
+    if (wasVisible && this.lastFocused?.isConnected) {
+      this.lastFocused.focus();
+    }
+    this.lastFocused = null;
   }
 
   isVisible(): boolean {

@@ -1,0 +1,505 @@
+/* --- Slot-Root (im Host oder Demo) --- */
+.gc-slot {
+  /* Bezugsrahmen für Session-Overlays, die den kompletten Slot abdecken müssen. */
+  position: relative;
+  width: 100%;
+  max-width: min(100%, 1040px);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(0.65rem, 2vw, 1rem);
+  padding: clamp(0.5rem, 1.5vw, 0.85rem);
+  box-sizing: border-box;
+}
+
+/* Der Slot ist fokussierbar (Leertaste/Enter spinnen) — Fokus muss sichtbar sein. */
+.gc-slot:focus-visible {
+  outline: 2px solid rgba(201, 162, 39, 0.45);
+  outline-offset: 4px;
+  border-radius: 14px;
+}
+
+/*
+ * Während einer Bonus-Session bleibt nur das Session-Overlay bedienbar.
+ * Der Spin-Button ist zusätzlich über die State Machine gesperrt — das hier
+ * verhindert Klicks auf Controls-Bar und Desktop-Panels.
+ */
+.gc-slot--bonus-session .gc-controls-bar,
+.gc-slot--bonus-session .gc-button--spin,
+.gc-slot--bonus-session .gc-desktop-chrome {
+  pointer-events: none;
+}
+
+.gc-slot--bonus-session .gc-controls-bar,
+.gc-slot--bonus-session .gc-desktop-chrome {
+  opacity: 0.45;
+  filter: saturate(0.6);
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+/* Layout-Modi — `data-gc-layout` setzt `GearsClashGame` per ResizeObserver */
+.gc-slot[data-gc-layout='compact'] {
+  max-width: 100%;
+  gap: clamp(0.45rem, 1.4vw, 0.75rem);
+  padding: clamp(0.35rem, 1.2vw, 0.55rem);
+}
+
+.gc-slot[data-gc-layout='standard'] {
+  max-width: min(100%, 960px);
+}
+
+.gc-slot[data-gc-layout='wide'] {
+  max-width: min(100%, 1080px);
+}
+
+.gc-slot[data-gc-layout='ultrawide'] {
+  max-width: min(100%, 1200px);
+}
+
+.gc-slot[data-gc-layout='compact'] .gc-button--spin {
+  width: clamp(5.25rem, 22vw, 6.75rem);
+  height: clamp(5.25rem, 22vw, 6.75rem);
+  font-size: clamp(0.9rem, 3vw, 1.05rem);
+}
+
+/*
+ * Handy im Querformat: Höhe ist knapp. HUD schrumpft auf eine Zeile,
+ * der Spin-Button rückt neben das Raster statt darunter.
+ */
+.gc-slot[data-gc-layout='compact'][data-gc-orientation='landscape'] {
+  gap: 0.35rem;
+}
+
+.gc-slot[data-gc-layout='compact'][data-gc-orientation='landscape'] .gc-hud {
+  gap: 0.35rem;
+}
+
+.gc-slot[data-gc-layout='compact'][data-gc-orientation='landscape'] .gc-hud-panel {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0.55rem;
+}
+
+.gc-slot[data-gc-layout='compact'][data-gc-orientation='landscape']
+  .gc-hud-panel__value {
+  font-size: 0.95rem;
+}
+
+.gc-slot[data-gc-layout='compact'][data-gc-orientation='landscape']
+  .gc-button--spin {
+  width: clamp(4rem, 12vh, 5rem);
+  height: clamp(4rem, 12vh, 5rem);
+  font-size: 0.85rem;
+}
+
+/* --- Desktop-Zeile: Seitenleisten + Spielfeld (nur wide / ultrawide sichtbar) --- */
+.gc-slot__desktop-stage {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: clamp(0.45rem, 1.2vw, 0.75rem);
+  width: 100%;
+  min-width: 0;
+}
+
+.gc-slot__center {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gc-desktop-chrome {
+  display: none;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: min(200px, 22vw);
+  min-width: 132px;
+  max-width: 220px;
+  padding: 0.5rem 0.55rem;
+  border-radius: 12px;
+  box-sizing: border-box;
+  background:
+    linear-gradient(160deg, rgba(34, 32, 40, 0.92) 0%, rgba(16, 16, 22, 0.96) 100%);
+  border: 1px solid rgba(80, 72, 58, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.gc-slot[data-gc-layout='wide'] .gc-desktop-chrome,
+.gc-slot[data-gc-layout='ultrawide'] .gc-desktop-chrome {
+  display: flex;
+}
+
+.gc-slot[data-gc-layout='ultrawide'] .gc-desktop-chrome {
+  width: min(220px, 18vw);
+  min-width: 156px;
+  max-width: 260px;
+}
+
+/* Läuft ein Bonus, färbt sich die linke Leiste im Modus-Akzent (Tokens). */
+.gc-desktop-chrome[data-bonus-id] {
+  border-color: var(--gc-accent-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    var(--gc-glow-1);
+}
+
+.gc-desktop-chrome__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.4rem 0.45rem;
+  border-radius: var(--gc-radius-sm);
+  background: var(--gc-surface-sunken);
+  border: 1px solid rgba(70, 64, 56, 0.35);
+}
+
+.gc-desktop-chrome[data-bonus-id] .gc-desktop-chrome__section {
+  border-color: color-mix(in srgb, var(--gc-accent-border) 45%, transparent);
+}
+
+.gc-desktop-chrome__label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(190, 186, 200, 0.5);
+}
+
+.gc-desktop-chrome__value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgba(228, 224, 236, 0.88);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.gc-desktop-chrome[data-bonus-id] .gc-desktop-chrome__value {
+  color: var(--gc-accent-bright);
+}
+
+/* Der Detailtext aus `describeBonus()` darf umbrechen. */
+.gc-desktop-chrome__section[data-gc-panel='bonus-detail'] .gc-desktop-chrome__value {
+  white-space: normal;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.gc-desktop-chrome__hint {
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  color: rgba(150, 148, 165, 0.45);
+}
+
+/* --- HUD --- */
+.gc-hud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.45rem, 1.5vw, 0.75rem);
+}
+
+.gc-hud-panel {
+  flex: 1 1 140px;
+  min-width: min(140px, 28vw);
+  max-width: 320px;
+  padding: 0.55rem 0.85rem 0.6rem;
+  border-radius: 10px;
+  background:
+    linear-gradient(145deg, rgba(40, 38, 48, 0.95) 0%, rgba(22, 22, 30, 0.98) 100%);
+  border: 1px solid rgba(90, 82, 70, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.gc-hud-panel__label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(200, 190, 210, 0.55);
+}
+
+.gc-hud-panel__value {
+  font-size: clamp(1rem, 2.8vw, 1.25rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f2eee8;
+  text-shadow: 0 0 20px rgba(201, 162, 39, 0.15);
+  transition:
+    color 0.2s ease,
+    text-shadow 0.25s ease;
+}
+
+/* --- Slot-Host: neutraler Wrapper (Rahmen-Grafik liegt in Pixi) --- */
+.gc-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+.gc-frame__inner {
+  position: relative;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.gc-canvas-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.gc-pixi-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+/* --- Spin --- */
+.gc-slot__spin-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.25rem 0 0.35rem;
+}
+
+.gc-button {
+  appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: none;
+  color: #1a1208;
+  touch-action: manipulation;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+
+.gc-button--spin {
+  width: clamp(4.5rem, 14vw, 5.75rem);
+  height: clamp(4.5rem, 14vw, 5.75rem);
+  border-radius: 50%;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  text-transform: uppercase;
+  background:
+    radial-gradient(circle at 30% 25%, #fff8e0 0%, transparent 42%),
+    linear-gradient(155deg, #f0d878 0%, #c9a227 35%, #8a6020 90%, #5a4020 100%);
+  border: 3px solid rgba(60, 45, 20, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 160, 0.35),
+    0 6px 0 rgba(40, 28, 10, 0.95),
+    0 10px 28px rgba(0, 0, 0, 0.55);
+}
+
+.gc-button--spin:not(:disabled):hover {
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 160, 0.5),
+    0 6px 0 rgba(40, 28, 10, 0.95),
+    0 14px 36px rgba(201, 162, 39, 0.35);
+}
+
+.gc-button--spin:not(:disabled):active {
+  transform: translateY(3px);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 160, 0.25),
+    0 3px 0 rgba(40, 28, 10, 0.95),
+    0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.gc-button--spin:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.35) brightness(0.65);
+  opacity: 0.72;
+  transform: none;
+  box-shadow:
+    0 0 0 1px rgba(100, 100, 110, 0.2),
+    0 4px 0 rgba(30, 30, 35, 0.9),
+    0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.gc-button--spin:focus-visible {
+  outline: 2px solid #48c8f0;
+  outline-offset: 3px;
+}
+
+.gc-button--spin:not(:disabled) {
+  animation: gc-spin-idle-pulse 2.5s ease-in-out infinite;
+}
+
+.gc-button--spin:not(:disabled):hover {
+  animation: none;
+}
+
+@keyframes gc-spin-idle-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(255, 230, 160, 0.35),
+      0 6px 0 rgba(40, 28, 10, 0.95),
+      0 10px 28px rgba(0, 0, 0, 0.55),
+      0 0 20px rgba(201, 162, 39, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 230, 160, 0.5),
+      0 6px 0 rgba(40, 28, 10, 0.95),
+      0 10px 28px rgba(0, 0, 0, 0.55),
+      0 0 35px rgba(201, 162, 39, 0.35);
+  }
+}
+
+/* --- Reduced Motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .gc-button--spin:not(:disabled) {
+    animation: none;
+  }
+
+  .gc-rolling-digit--roll {
+    animation: none;
+  }
+
+  .gc-bonus-gear--left,
+  .gc-bonus-gear--right {
+    animation: none;
+  }
+
+  .gc-bonus-sparks {
+    animation: none;
+  }
+
+  .gc-bonus-wild-star {
+    animation: none;
+  }
+
+  .gc-bonus-phase-connector {
+    animation: none;
+  }
+
+  .gc-bonus-overlay__card {
+    transition: opacity 0.2s ease;
+  }
+
+  @keyframes gc-digit-roll {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* Externer Button: kompakterer Stil */
+.gc-button:not(.gc-button--spin) {
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #4a4238, #2a2218);
+  color: #f0e8dc;
+  border: 1px solid rgba(120, 100, 80, 0.6);
+}
+
+.gc-button:not(.gc-button--spin):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Screen-Shake (leicht) --- */
+@keyframes gc-shake-keyframes {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-3px, 1px);
+  }
+  40% {
+    transform: translate(3px, -1px);
+  }
+  60% {
+    transform: translate(-2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+.gc-frame--shake {
+  animation: gc-shake-keyframes 0.38s ease-out;
+}
+
+.gc-frame--shake-medium {
+  animation: gc-shake-keyframes 0.52s ease-out;
+}
+
+/* --- Win Tier Glow --- */
+.gc-hud-panel[data-tier="small"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 14px rgba(0, 0, 0, 0.45),
+    0 0 15px rgba(201, 162, 39, 0.15);
+}
+
+.gc-hud-panel[data-tier="medium"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 14px rgba(0, 0, 0, 0.45),
+    0 0 25px rgba(240, 180, 60, 0.25);
+}
+
+.gc-hud-panel[data-tier="medium"] .gc-hud-panel__value {
+  color: #ffe8a0;
+  text-shadow: 0 0 20px rgba(240, 200, 80, 0.4);
+}
+
+.gc-hud-panel[data-tier="big"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 14px rgba(0, 0, 0, 0.45),
+    0 0 35px rgba(255, 160, 60, 0.35);
+  border-color: rgba(255, 180, 80, 0.6);
+}
+
+.gc-hud-panel[data-tier="big"] .gc-hud-panel__value {
+  color: #ffd060;
+  text-shadow: 0 0 25px rgba(255, 180, 60, 0.5);
+}
+
+.gc-hud-panel[data-tier="mega"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 4px 14px rgba(0, 0, 0, 0.45),
+    0 0 45px rgba(255, 100, 150, 0.4);
+  border-color: rgba(255, 128, 192, 0.6);
+}
+
+.gc-hud-panel[data-tier="mega"] .gc-hud-panel__value {
+  color: #ff90c0;
+  text-shadow: 0 0 30px rgba(255, 100, 160, 0.6);
+}

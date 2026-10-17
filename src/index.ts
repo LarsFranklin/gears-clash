@@ -5,7 +5,11 @@
 import './styles/host-ui.css';
 
 export { GearsClashGame } from './GearsClashGame';
-export type { GearsClashGameOptions, GameSoundAdapter } from './GearsClashGame';
+export type {
+  ControlsVisibilityOptions,
+  GameSoundAdapter,
+  GearsClashGameOptions,
+} from './GearsClashGame';
 
 export type { GcFxQuality, GcLayoutMode } from './util/layoutMode';
 export {
@@ -23,23 +27,39 @@ export {
 
 export { defaultGameConfig } from './config/defaultGameConfig';
 export type { DemoSpinScenarioId } from './config/demoSpinPresets';
+export {
+  DEMO_SPIN_SCENARIO_IDS,
+  buildDemoReelStops,
+  isDemoSpinScenarioId,
+} from './config/demoSpinPresets';
 export { mergeGameConfig } from './config/mergeGameConfig';
+export type { MergeGameConfigOptions } from './config/mergeGameConfig';
+export {
+  validateGameConfig,
+  GameConfigValidationError,
+} from './config/validateGameConfig';
 export { defaultSlotMath } from './config/defaultSlotMath';
 export type {
+  AnimationConfig,
   BonusId,
+  BonusRetriggerEvent,
+  BonusSessionMeta,
   BonusSessionPayload,
+  BonusSummaryEvent,
   DeadlockCollectedSymbol,
   DeadlockModePayload,
   DeadlockPhase,
   GameConfig,
   GameEventName,
   GearsClashPayload,
+  GridConfig,
   HeistRunPayload,
   HeistRunStickyWild,
   HostAdapter,
   PaylineType,
   SlotMathConfig,
   SlotPaylineDefinition,
+  SoundConfig,
   SpinDisplayHighlight,
   SpinDisplayWinLine,
   SpinRequest,
@@ -48,7 +68,15 @@ export type {
   SymbolKind,
 } from './config/types';
 export type { DemoSpinEvaluation } from './core/slotEvaluation';
-export { evaluateDemoBaseSpin } from './core/slotEvaluation';
+export { activePaylines, evaluateDemoBaseSpin } from './core/slotEvaluation';
+
+export type { WinTier } from './renderer/BigWinLayer';
+export { getWinTier } from './renderer/BigWinLayer';
+
+export {
+  countBonusScatterOfTypeForColumnPrefix,
+  countBonusScatterOfTypeFullGrid,
+} from './core/scatterAnticipation';
 
 export type { GameApiAdapter } from './adapters/GameApiAdapter';
 export { HttpGameApiAdapter } from './adapters/HttpGameApiAdapter';

@@ -10,7 +10,12 @@ export class HudController {
   private animToken = 0;
   /** Wird bei `destroy` erhöht — offene `setTimeout` für Roll-CSS ignorieren dann das DOM. */
   private hudGen = 0;
+  private rollTimers = new Set<number>();
   private reducedMotion = false;
+  private motionQuery: MediaQueryList | null = null;
+  private readonly onMotionChange = (e: MediaQueryListEvent): void => {
+    this.reducedMotion = e.matches;
+  };
 
   mount(parent: HTMLElement): void {
     this.el = document.createElement('div');
@@ -35,13 +40,20 @@ export class HudController {
     parent.appendChild(this.el);
 
     if (typeof window !== 'undefined' && window.matchMedia) {
-      this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      this.motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      this.reducedMotion = this.motionQuery.matches;
+      this.motionQuery.addEventListener('change', this.onMotionChange);
     }
   }
 
   setBalance(value: number): void {
     this.balance = value;
     this.setRollingDigits('balance', value);
+  }
+
+  /** Zuletzt angezeigter Kontostand (Server-Wert, keine Client-Rechnung). */
+  getBalance(): number {
+    return this.balance;
   }
 
   setBet(value: number): void {
@@ -177,10 +189,12 @@ export class HudController {
       if (digitSpan.textContent !== newChar) {
         digitSpan.classList.add('gc-rolling-digit--roll');
         digitSpan.textContent = newChar;
-        setTimeout(() => {
+        const timerId = window.setTimeout(() => {
+          this.rollTimers.delete(timerId);
           if (gen !== this.hudGen) return;
           digitSpan.classList.remove('gc-rolling-digit--roll');
         }, 150);
+        this.rollTimers.add(timerId);
       }
     }
   }
@@ -199,6 +213,12 @@ export class HudController {
   destroy(): void {
     this.animToken++;
     this.hudGen++;
+    for (const timerId of this.rollTimers) {
+      clearTimeout(timerId);
+    }
+    this.rollTimers.clear();
+    this.motionQuery?.removeEventListener('change', this.onMotionChange);
+    this.motionQuery = null;
     this.el?.remove();
     this.el = null;
   }
