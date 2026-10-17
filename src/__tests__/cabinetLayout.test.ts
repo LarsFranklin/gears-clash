@@ -6,6 +6,7 @@ import {
   CABINET_ASPECT,
   cabinetCanvasSize,
   cabinetCrownGearRect,
+  cabinetFrameHeight,
   cabinetOpening,
   cabinetTopRailBrassY,
 } from '../renderer/cabinetLayout';
@@ -37,11 +38,20 @@ describe('Slot-Schrank', () => {
     const desktopWidths = [1280, 1366, 1440, 1600, 1920];
     for (const rawWidth of desktopWidths) {
       const { totalW, totalH } = cabinetCanvasSize(rawWidth);
+      const frameH = cabinetFrameHeight(totalH);
       const opening = cabinetOpening(totalW, totalH);
       const crown = cabinetCrownGearRect(totalW, totalH);
       const brassY = cabinetTopRailBrassY(totalW, totalH);
       const crownBottom = crown.y + crown.h;
+      const openingX = Math.round(totalW * 0.055);
+      const openingY = Math.round(frameH * 0.048);
+      const openingBottom = Math.round(frameH * 0.028);
 
+      expect(opening.x, `${rawWidth}px`).toBe(openingX);
+      expect(opening.y, `${rawWidth}px`).toBe(openingY);
+      expect(opening.w, `${rawWidth}px`).toBe(Math.max(1, totalW - openingX * 2));
+      expect(opening.h, `${rawWidth}px`).toBe(Math.max(1, frameH - openingY - openingBottom));
+      expect(crown.h, `${rawWidth}px`).toBeLessThanOrEqual(brassY);
       expect(crownBottom, `${rawWidth}px`).toBeLessThanOrEqual(opening.y);
       expect(crownBottom, `${rawWidth}px`).toBeCloseTo(brassY, 5);
       expect(brassY, `${rawWidth}px`).toBeLessThanOrEqual(opening.y);

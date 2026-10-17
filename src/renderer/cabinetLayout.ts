@@ -19,7 +19,7 @@ export const CABINET_TOP_RAIL_Y_OF_SHORT = 0.004;
 export const CABINET_TOP_RAIL_H_OF_SHORT = 0.07;
 export const CABINET_TOP_RAIL_W_OF_TOTAL = 0.7;
 
-/** Kronenzahnrad: längste Kante relativ zur kürzeren Rahmenkante. */
+/** Kronenzahnrad: maximale Kante relativ zur kürzeren Rahmenkante. */
 export const CABINET_CROWN_GEAR_OF_SHORT = 0.16;
 
 export const CABINET_ASSETS = {
@@ -125,8 +125,9 @@ export function cabinetTopRailBrassY(totalW: number, totalH: number): number {
 }
 
 export function cabinetCrownGearRect(totalW: number, totalH: number): CabinetRect {
-  const size = cabinetShortEdge(totalW, totalH) * CABINET_CROWN_GEAR_OF_SHORT;
+  const maxSize = cabinetShortEdge(totalW, totalH) * CABINET_CROWN_GEAR_OF_SHORT;
   const bottom = cabinetTopRailBrassY(totalW, totalH);
+  const size = Math.min(maxSize, Math.max(1, bottom));
   return {
     x: totalW * 0.5 - size / 2,
     y: bottom - size,
