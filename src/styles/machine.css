@@ -131,12 +131,13 @@
 .gc-machine-deck .gc-controls-bar__btn {
   width: calc(var(--gc-control-key, 32px) * var(--gc-cabinet-scale, 1));
   height: calc(var(--gc-control-key, 32px) * var(--gc-cabinet-scale, 1));
-  font-size: calc(1rem * var(--gc-cabinet-scale, 1));
+  font-size: max(var(--gc-font-min, 12px), calc(1rem * var(--gc-cabinet-scale, 1)));
 }
 
 .gc-machine-deck .gc-controls-bar__label,
 .gc-machine-deck .gc-controls-bar__toggle,
-.gc-machine-deck .gc-controls-bar__auto-select {
+.gc-machine-deck .gc-controls-bar__auto-select,
+.gc-machine-deck .gc-controls-bar__info-btn {
   font-size: max(
     var(--gc-font-min, 12px),
     calc(0.75rem * var(--gc-cabinet-scale, 1))
@@ -151,6 +152,9 @@
 
 .gc-machine-deck .gc-controls-bar__bet-display {
   min-width: calc(60px * var(--gc-cabinet-scale, 1));
-  font-size: calc(0.9rem * var(--gc-cabinet-scale, 1));
+  font-size: max(
+    var(--gc-font-min, 12px),
+    calc(0.9rem * var(--gc-cabinet-scale, 1))
+  );
   padding: 0 calc(0.5rem * var(--gc-cabinet-scale, 1));
 }
