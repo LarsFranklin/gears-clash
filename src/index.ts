@@ -6,6 +6,7 @@ import './styles/host-ui.css';
 
 export { GearsClashGame } from './GearsClashGame';
 export type {
+  CabinetViewportOptions,
   ControlsVisibilityOptions,
   GameSoundAdapter,
   GearsClashGameOptions,

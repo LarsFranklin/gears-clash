@@ -18,7 +18,7 @@ import type { PixiSlotRendererHooks, RendererStage } from './rendererStage';
 import { SpinChoreographer } from './SpinChoreographer';
 import { SlotCabinet } from './SlotCabinet';
 import { WinPresentation } from './WinPresentation';
-import { cabinetCanvasSize, cabinetOpening } from './cabinetLayout';
+import { cabinetOpening, fitCabinetToBox } from './cabinetLayout';
 import { SLOT_GRID_SYMBOL_SCALE } from './slotFrameSkin';
 
 const EMPTY_ROW_HIGHLIGHTS = new Set<number>();
@@ -497,6 +497,7 @@ export class PixiSlotRenderer {
   } {
     const parent = this.parentEl;
     const rawW = parent ? Math.max(260, Math.floor(parent.clientWidth)) : 360;
+    const rawH = parent && parent.clientHeight > 0 ? Math.floor(parent.clientHeight) : 0;
     const { reels, rows } = this.config.grid;
 
     if (!this.cabinet) {
@@ -513,7 +514,8 @@ export class PixiSlotRenderer {
       const gridW = reels * cellSize + gap * (reels - 1);
       const gridH = rows * pitch;
       const totalW = rawW;
-      const totalH = Math.ceil(gridH + pad * 2);
+      const unclampedH = Math.ceil(gridH + pad * 2);
+      const totalH = rawH > 0 ? Math.min(unclampedH, rawH) : unclampedH;
       const offsetX = Math.floor((totalW - gridW) / 2);
       const offsetY = Math.floor((totalH - gridH) / 2);
       return {
@@ -535,7 +537,10 @@ export class PixiSlotRenderer {
       };
     }
 
-    const { totalW, totalH } = cabinetCanvasSize(rawW);
+    const { totalW, totalH } = fitCabinetToBox(
+      rawW,
+      rawH > 0 ? rawH : Number.POSITIVE_INFINITY,
+    );
     const opening = cabinetOpening(totalW, totalH);
     const innerX = opening.x;
     const innerY = opening.y;
@@ -575,6 +580,8 @@ export class PixiSlotRenderer {
     this.pad = layout.pad;
     if (this.parentEl) {
       this.parentEl.style.aspectRatio = `${layout.totalW} / ${layout.totalH}`;
+      this.parentEl.style.maxWidth = '100%';
+      this.parentEl.style.maxHeight = '100%';
     }
   }
 

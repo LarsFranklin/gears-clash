@@ -132,13 +132,83 @@
   z-index: 1;
 }
 
+html:has(> body.gc-demo-page--player) {
+  height: 100%;
+  overflow: hidden;
+}
+
+html:has(> body.gc-demo-page--player[data-gc-fit='widthOnly']) {
+  height: auto;
+  overflow: auto;
+}
+
+.gc-demo-page--player {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+/* Gegenprobe: altes Breiten-Fit inkl. Shell-Padding (scrollt bei 1366×768). */
+.gc-demo-page--player[data-gc-fit='widthOnly'] {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
 .gc-demo-page--player .gc-demo-page__shell {
   justify-content: center;
-  min-height: 100dvh;
+  align-items: center;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.gc-demo-page--player[data-gc-fit='widthOnly'] .gc-demo-page__shell {
+  height: auto;
+  max-height: none;
+  padding: clamp(0.75rem, 3vw, 2rem);
+  padding-bottom: clamp(1.5rem, 5vw, 3rem);
+  overflow: visible;
 }
 
 .gc-demo-page--player .gc-demo-page__stage {
-  max-width: min(920px, 96vw);
+  /* Fallbacks — Laufzeit setzt dieselben Variablen aus cabinetViewport.ts. */
+  --gc-cabinet-max-width: 920px;
+  --gc-cabinet-aspect: calc(920 / 993);
+  --gc-fit-margin-top: 16px;
+  --gc-fit-margin-bottom: 16px;
+  width: min(
+    var(--gc-cabinet-max-width),
+    100vw,
+    calc(
+      (100dvh - var(--gc-fit-margin-top) - var(--gc-fit-margin-bottom)) *
+        var(--gc-cabinet-aspect)
+    )
+  );
+  max-width: 100%;
+  max-height: calc(100dvh - var(--gc-fit-margin-top) - var(--gc-fit-margin-bottom));
+  height: auto;
+  aspect-ratio: var(--gc-cabinet-aspect);
+}
+
+.gc-demo-page--player[data-gc-fit='widthOnly'] .gc-demo-page__stage {
+  width: min(var(--gc-cabinet-max-width), 96vw);
+  max-height: none;
+  aspect-ratio: var(--gc-cabinet-aspect);
+}
+
+.gc-demo-page--player .gc-demo-page__game-host,
+.gc-demo-page--player .gc-slot,
+.gc-demo-page--player .gc-slot__desktop-stage,
+.gc-demo-page--player .gc-slot__center,
+.gc-demo-page--player .gc-frame,
+.gc-demo-page--player .gc-frame__inner,
+.gc-demo-page--player .gc-canvas-wrap {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
 }
 
 .gc-demo-page--tools .gc-demo-page__stage {

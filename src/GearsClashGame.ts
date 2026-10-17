@@ -27,6 +27,11 @@ import { PayoutEngine } from './core/PayoutEngine';
 import { ReelEngine } from './core/ReelEngine';
 import { SlotEngine } from './core/SlotEngine';
 import { AssetLoader } from './renderer/AssetLoader';
+import {
+  applyCabinetCssVars,
+  layoutCabinetInViewport,
+  type CabinetViewportOptions,
+} from './renderer/cabinetViewport';
 import { loadSymbolTexturesFromManifest } from './renderer/loadSymbolTextures';
 import {
   PixiSlotRenderer,
@@ -78,7 +83,14 @@ export interface GearsClashGameOptions {
   controls?: ControlsVisibilityOptions;
   /** Leertaste/Enter lösen einen Spin aus, solange der Slot fokussiert ist. Default: true. */
   keyboardControls?: boolean;
+  /**
+   * Demo/Gegenprobe: `widthOnly` (altes Breiten-Fit), `noMargin` (ohne 16-px-Rand)
+   * oder `unscaledConsole` (Tasten 32 px im verkleinerten Schrank).
+   */
+  cabinetFit?: CabinetViewportOptions;
 }
+
+export type { CabinetViewportOptions };
 
 /** Welche Bedienelemente die Controls-Bar zeigt — alles einzeln abschaltbar. */
 export interface ControlsVisibilityOptions {
@@ -110,6 +122,7 @@ export class GearsClashGame {
   private canvasWrap: HTMLDivElement | null = null;
   private frameInner: HTMLDivElement | null = null;
   private frameEl: HTMLDivElement | null = null;
+  private deckEl: HTMLDivElement | null = null;
   private bonusOverlay: BonusOverlayController | null = null;
   private controlsBar: ControlsBar | null = null;
   private deadlockSessionUi: DeadlockModeSessionController | null = null;
@@ -404,6 +417,7 @@ export class GearsClashGame {
 
       const deck = document.createElement('div');
       deck.className = 'gc-machine-deck';
+      this.deckEl = deck;
       frame.appendChild(deck);
       gameCenter.appendChild(frame);
 
@@ -459,6 +473,7 @@ export class GearsClashGame {
       this.heistRunSessionUi.mount(this.rootEl);
 
       container.appendChild(this.rootEl);
+      this.syncLayoutPresentation();
 
       const manifest = resolveManifestPaths(
         this.options.assetManifest ?? defaultAssetManifest,
@@ -531,7 +546,8 @@ export class GearsClashGame {
 
   private syncLayoutPresentation(): void {
     if (!this.rootEl) return;
-    const w = this.rootEl.getBoundingClientRect().width;
+    const hostW = this.options.container.getBoundingClientRect().width;
+    const w = hostW > 0 ? hostW : this.rootEl.getBoundingClientRect().width;
     const mode = this.options.layoutMode ?? resolveGcLayoutMode(w);
     let fx: GcFxQuality =
       this.options.fxQuality ?? defaultFxQualityForLayout(mode);
@@ -545,7 +561,46 @@ export class GearsClashGame {
     this.rootEl.dataset.gcLayout = mode;
     this.rootEl.dataset.gcFxQuality = fx;
     this.rootEl.dataset.gcOrientation = this.resolveOrientation();
+    this.syncCabinetFit(mode);
     this.renderer?.setPresentationMode({ layoutMode: mode, fxQuality: fx });
+  }
+
+  /**
+   * Desktop: dieselbe `layoutCabinetInViewport`-Rechnung wie der Bounds-Test.
+   * Compact (Mobile-Bottom-Sheet) bleibt unangetastet.
+   */
+  private syncCabinetFit(mode: GcLayoutMode): void {
+    if (!this.rootEl) return;
+    if (mode === 'compact') {
+      this.rootEl.style.width = '';
+      this.rootEl.style.maxWidth = '';
+      applyCabinetCssVars(this.rootEl);
+      if (this.frameEl) applyCabinetCssVars(this.frameEl);
+      if (this.deckEl) applyCabinetCssVars(this.deckEl);
+      return;
+    }
+    const vpW =
+      typeof window !== 'undefined' ? window.innerWidth : this.options.container.clientWidth;
+    const vpH =
+      typeof window !== 'undefined' ? window.innerHeight : this.options.container.clientHeight;
+    const layout = layoutCabinetInViewport(
+      {
+        width: Math.max(1, vpW),
+        height: Math.max(1, vpH),
+      },
+      this.options.cabinetFit,
+    );
+    applyCabinetCssVars(this.rootEl, layout);
+    applyCabinetCssVars(this.options.container, layout);
+    const stageHost = this.options.container.parentElement;
+    if (stageHost) applyCabinetCssVars(stageHost, layout);
+    if (this.frameEl) applyCabinetCssVars(this.frameEl, layout);
+    if (this.deckEl) applyCabinetCssVars(this.deckEl, layout);
+    const next = `${layout.fit.totalW}px`;
+    if (this.rootEl.style.width !== next) {
+      this.rootEl.style.width = next;
+      this.rootEl.style.maxWidth = next;
+    }
   }
 
   /**
@@ -605,6 +660,7 @@ export class GearsClashGame {
     this.canvasWrap = null;
     this.frameInner = null;
     this.frameEl = null;
+    this.deckEl = null;
     this.mounted = false;
   }
 
@@ -658,6 +714,7 @@ export class GearsClashGame {
     this.canvasWrap = null;
     this.frameInner = null;
     this.frameEl = null;
+    this.deckEl = null;
     this.mounted = false;
     this.emitter.removeAllListeners();
   }
