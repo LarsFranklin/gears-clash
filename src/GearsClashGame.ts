@@ -27,7 +27,10 @@ import { PayoutEngine } from './core/PayoutEngine';
 import { ReelEngine } from './core/ReelEngine';
 import { SlotEngine } from './core/SlotEngine';
 import { AssetLoader } from './renderer/AssetLoader';
-import { fitCabinetToBox } from './renderer/cabinetLayout';
+import {
+  applyCabinetCssVars,
+  layoutCabinetInViewport,
+} from './renderer/cabinetViewport';
 import { loadSymbolTexturesFromManifest } from './renderer/loadSymbolTextures';
 import {
   PixiSlotRenderer,
@@ -111,6 +114,7 @@ export class GearsClashGame {
   private canvasWrap: HTMLDivElement | null = null;
   private frameInner: HTMLDivElement | null = null;
   private frameEl: HTMLDivElement | null = null;
+  private deckEl: HTMLDivElement | null = null;
   private bonusOverlay: BonusOverlayController | null = null;
   private controlsBar: ControlsBar | null = null;
   private deadlockSessionUi: DeadlockModeSessionController | null = null;
@@ -405,6 +409,7 @@ export class GearsClashGame {
 
       const deck = document.createElement('div');
       deck.className = 'gc-machine-deck';
+      this.deckEl = deck;
       frame.appendChild(deck);
       gameCenter.appendChild(frame);
 
@@ -553,7 +558,7 @@ export class GearsClashGame {
   }
 
   /**
-   * Desktop: Schrank inkl. Konsole gleichmäßig in den Host/Viewport.
+   * Desktop: dieselbe `layoutCabinetInViewport`-Rechnung wie der Bounds-Test.
    * Compact (Mobile-Bottom-Sheet) bleibt unangetastet.
    */
   private syncCabinetFit(mode: GcLayoutMode): void {
@@ -561,22 +566,24 @@ export class GearsClashGame {
     if (mode === 'compact') {
       this.rootEl.style.width = '';
       this.rootEl.style.maxWidth = '';
+      applyCabinetCssVars(this.rootEl);
+      if (this.frameEl) applyCabinetCssVars(this.frameEl);
+      if (this.deckEl) applyCabinetCssVars(this.deckEl);
       return;
     }
-    const host = this.options.container;
-    const boxW = Math.max(
-      1,
-      Math.floor(
-        host.clientWidth ||
-          (typeof window !== 'undefined' ? window.innerWidth : this.rootEl.clientWidth),
-      ),
-    );
-    let boxH = Math.floor(host.clientHeight);
-    if (typeof window !== 'undefined') {
-      boxH = boxH > 0 ? Math.min(boxH, window.innerHeight) : window.innerHeight;
-    }
-    const fit = fitCabinetToBox(boxW, boxH);
-    const next = `${fit.totalW}px`;
+    const vpW =
+      typeof window !== 'undefined' ? window.innerWidth : this.options.container.clientWidth;
+    const vpH =
+      typeof window !== 'undefined' ? window.innerHeight : this.options.container.clientHeight;
+    const layout = layoutCabinetInViewport({
+      width: Math.max(1, vpW),
+      height: Math.max(1, vpH),
+    });
+    applyCabinetCssVars(this.rootEl, layout);
+    applyCabinetCssVars(this.options.container, layout);
+    if (this.frameEl) applyCabinetCssVars(this.frameEl, layout);
+    if (this.deckEl) applyCabinetCssVars(this.deckEl, layout);
+    const next = `${layout.fit.totalW}px`;
     if (this.rootEl.style.width !== next) {
       this.rootEl.style.width = next;
       this.rootEl.style.maxWidth = next;
@@ -640,6 +647,7 @@ export class GearsClashGame {
     this.canvasWrap = null;
     this.frameInner = null;
     this.frameEl = null;
+    this.deckEl = null;
     this.mounted = false;
   }
 
@@ -693,6 +701,7 @@ export class GearsClashGame {
     this.canvasWrap = null;
     this.frameInner = null;
     this.frameEl = null;
+    this.deckEl = null;
     this.mounted = false;
     this.emitter.removeAllListeners();
   }
